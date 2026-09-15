@@ -686,7 +686,12 @@ sudo bash /tmp/mt.sh</pre>
 <pre>AGH_PASS='ПАРОЛЬ' sudo -E bash &lt;(curl -fsSL \
   https://raw.githubusercontent.com/dykomenko/adh-fleet/main/origin/setup-origin.sh)</pre>
         </div>
-        <p>Пароль ложится в <code class="inl">/opt/agh-sync/admin.pass</code> с правами 600 — это единственный секрет на origin. Сам <code class="inl">sync.yaml</code> руками не пишется, его собирает генератор из части C.</p>
+        <div class="note warn">
+          <span class="note-label">Здесь пароль, а не хеш</span>
+          <p>Названия похожие, спутать легко. <code class="inl">AGH_PASS</code> — пароль <strong>открытым текстом</strong>, тот, что вводили в мастере; он ложится в <code class="inl">/opt/agh-sync/admin.pass</code>, и им синхронизатор логинится в API реплик. <code class="inl">AGH_PASS_HASH</code> — bcrypt-хеш, он идёт в конфиг ноды при установке реплики, потому что AGH хранит пароли только хешированными.</p>
+          <p>Хеш создаёт учётку, открытый пароль позволяет ею воспользоваться. Скрипт откажется работать, если передать ему хеш.</p>
+        </div>
+        <p>Пароль ложится с правами 600 — это единственный секрет на origin. Сам <code class="inl">sync.yaml</code> руками не пишется, его собирает генератор из части C.</p>
         <p>Если реплик ещё нет, скрипт честно скажет об этом и выйдет: поднимите первую ноду и запустите <code class="inl">/opt/agh-sync/sync-now.sh</code>.</p>
       </li>
 

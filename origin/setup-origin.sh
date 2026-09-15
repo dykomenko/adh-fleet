@@ -3,8 +3,11 @@
 # Разворачивает синхронизатор на origin-ноде. Запускается НА ORIGIN, от root.
 # AdGuard Home к этому моменту уже должен быть настроен вручную.
 #
-#   AGH_PASS='<пароль админа>' \
+#   AGH_PASS='<пароль админа открытым текстом>' \
 #     bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/origin/setup-origin.sh)
+#
+# Не перепутайте с AGH_PASS_HASH из install.sh: там bcrypt-хеш для конфига
+# ноды, здесь — сам пароль, которым синхронизатор логинится в API реплик.
 #
 # Ставит adguardhome-sync, генератор списка реплик и крон. Идемпотентен.
 
@@ -13,7 +16,18 @@ set -euo pipefail
 REPO="${REPO:-https://raw.githubusercontent.com/dykomenko/adh-fleet/main}"
 DIR=/opt/agh-sync
 
-: "${AGH_PASS:?не задан AGH_PASS — пароль админа AdGuard Home}"
+# Здесь нужен пароль ОТКРЫТЫМ ТЕКСТОМ, а не bcrypt-хеш: синхронизатор
+# логинится в API реплик, а API принимает пароль. Хеш (AGH_PASS_HASH)
+# используется в другом месте — install.sh кладёт его в конфиг ноды,
+# потому что AGH хранит пароли только в хешированном виде.
+: "${AGH_PASS:?не задан AGH_PASS — пароль админа AdGuard Home ОТКРЫТЫМ ТЕКСТОМ, не хеш}"
+
+if [[ "$AGH_PASS" == \$2[aby]\$* ]]; then
+  echo "AGH_PASS похож на bcrypt-хеш." >&2
+  echo "Здесь нужен пароль открытым текстом — тот, что вводили в мастере AGH." >&2
+  echo "Хеш нужен в install.sh на репликах, как AGH_PASS_HASH." >&2
+  exit 1
+fi
 [[ $EUID -eq 0 ]] || { echo "нужен root" >&2; exit 1; }
 command -v docker >/dev/null || { echo "docker не установлен" >&2; exit 1; }
 command -v jq >/dev/null || { apt-get update -qq && apt-get install -y -qq jq curl; }
