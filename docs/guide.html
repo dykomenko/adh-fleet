@@ -597,10 +597,15 @@ sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf</pre>
         </div>
         <p>На <code class="inl">http://localhost:3000</code> задаём:</p>
         <ul class="plain">
-          <li><strong>Веб-интерфейс</strong> — интерфейс <code class="inl">wt0</code> с адресом <code class="inl">100.x.x.x</code>, это Netbird; порт <code class="inl">3000</code></li>
+          <li><strong>Веб-интерфейс</strong> — <strong>«Все интерфейсы»</strong>, порт <code class="inl">3000</code></li>
           <li><strong>DNS-сервер</strong> — <strong>«Все интерфейсы»</strong>, порт <code class="inl">53</code></li>
           <li><strong>Логин и пароль админа</strong> — запомните пароль, он станет общим для всего парка</li>
         </ul>
+        <div class="note warn">
+          <span class="note-label">Оба поля — «Все интерфейсы»</span>
+          <p>Если выбрать для панели конкретный адрес, мастер упрётся в самого себя: <code class="inl">checking address 100.x.x.x:3000: bind: address already in use | 400</code>. Во время установки AGH уже слушает <code class="inl">0.0.0.0:3000</code>, и проверка доступности того же порта на конкретном адресе натыкается на его собственный сокет.</p>
+          <p>Вторая причина важнее: адреса у нод разные, и привязка к адресу origin сделала бы шаблон непригодным для реплик. <code class="inl">make-template.sh</code> откажется снимать такой шаблон.</p>
+        </div>
         <p>Мастер слушает все интерфейсы, поэтому туннель на <code class="inl">127.0.0.1</code> здесь работает. После сохранения панель переедет на оверлейный адрес.</p>
 
         <h3 style="margin-top:26px">Почему DNS на всех интерфейсах, а не на адресе VPN</h3>
@@ -742,8 +747,9 @@ systemctl enable --now adh-firewall.service
 install -d /opt/adguardhome/conf /opt/adguardhome/work
 curl -fsSL "$REPO/node/docker-compose.yml"    -o /opt/adguardhome/docker-compose.yml
 curl -fsSL "$REPO/node/AdGuardHome.yaml.tmpl" -o /opt/adguardhome/AdGuardHome.yaml.tmpl
-sed -e "s|__NB_IP__|$NB_IP|g" \
-    -e "s|__PASS_HASH__|$AGH_PASS_HASH|g" \
+# адреса не подставляются: и DNS, и панель слушают все интерфейсы,
+# ограничивает доступ iptables
+sed -e "s|__PASS_HASH__|$AGH_PASS_HASH|g" \
     /opt/adguardhome/AdGuardHome.yaml.tmpl \
     &gt; /opt/adguardhome/conf/AdGuardHome.yaml
 

@@ -158,14 +158,16 @@ MSG
   exit 1
 fi
 
+# Адреса не подставляются: и DNS, и панель слушают все интерфейсы,
+# а ограничивает доступ iptables. Единственная подстановка — хеш пароля,
+# без которого синхронизатор не смог бы авторизоваться на реплике.
 umask 077
-sed -e "s|__NB_IP__|$NB_IP|g" \
-    -e "s|__PASS_HASH__|$AGH_PASS_HASH|g" \
+sed -e "s|__PASS_HASH__|$AGH_PASS_HASH|g" \
     "$APP_DIR/AdGuardHome.yaml.tmpl" > "$APP_DIR/conf/AdGuardHome.yaml"
 umask 022
 
-if grep -q '__NB_IP__\|__PASS_HASH__' "$APP_DIR/conf/AdGuardHome.yaml"; then
-  echo "в конфиге остались неподставленные плейсхолдеры" >&2
+if grep -q '__PASS_HASH__' "$APP_DIR/conf/AdGuardHome.yaml"; then
+  echo "в конфиге остался неподставленный плейсхолдер" >&2
   exit 1
 fi
 
