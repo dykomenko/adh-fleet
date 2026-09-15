@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 #
 # Собирает sync.yaml по составу группы agh-replica в оверлее.
-# Живёт на origin в /opt/agh-sync/gen-sync.sh, запускается кроном раз в 15 минут.
+# Живёт на origin в /opt/agh-sync/gen-sync.sh, запускается кроном раз в час.
 # Это то, из-за чего добавление ноды не требует правок на origin.
 #
 # Синхронизатор перезапускается только если состав реально изменился.
+# Нужен немедленный прогон — /opt/agh-sync/sync-now.sh
 
 set -euo pipefail
 
@@ -16,8 +17,10 @@ GROUP=agh-replica
 [[ -f "$PASS_FILE" ]] || { echo "нет $PASS_FILE" >&2; exit 1; }
 PASS="$(cat "$PASS_FILE")"
 
+umask 077
 {
-  printf 'cron: "*/10 * * * *"\n'
+  # Раз в час: правила меняются редко, гонять чаще смысла нет.
+  printf 'cron: "17 * * * *"\n'
   printf 'runOnStart: true\n'
   printf 'continueOnError: true\n\n'
   printf 'origin:\n'
@@ -27,8 +30,7 @@ PASS="$(cat "$PASS_FILE")"
   printf 'replicas:\n'
 
   # Офлайн-ноды намеренно не отфильтровываются: continueOnError позволит
-  # синхронизатору пропустить недоступную и обновить остальные,
-  # а вернувшаяся нода догонится сама, без ожидания пересборки списка.
+  # пропустить недоступную и обновить остальные, а вернувшаяся догонится сама.
   #
   # Структура вывода netbird status --json менялась между версиями —
   # сверьте фактические имена полей перед первым запуском.
@@ -47,6 +49,7 @@ PASS="$(cat "$PASS_FILE")"
   printf '    serverConfig: false\n'
   printf '    staticLeases: false\n'
 } > "$OUT.new"
+umask 022
 
 # Пустой список реплик — почти наверняка сбой опроса оверлея, а не факт.
 # Затирать рабочий конфиг таким не нужно.
@@ -56,13 +59,11 @@ if ! grep -q '^  - url:' "$OUT.new"; then
   exit 1
 fi
 
-install -m 600 /dev/null "$OUT.new.perm" && cat "$OUT.new" > "$OUT.new.perm"
-mv "$OUT.new.perm" "$OUT.new"
-
 if cmp -s "$OUT.new" "$OUT" 2>/dev/null; then
   rm -f "$OUT.new"
-else
-  mv "$OUT.new" "$OUT"
-  docker restart agh-sync >/dev/null
-  echo "состав реплик изменился: $(grep -c '^  - url:' "$OUT") шт., синхронизатор перезапущен"
+  exit 0
 fi
+
+mv "$OUT.new" "$OUT"
+docker restart agh-sync >/dev/null
+echo "состав реплик изменился: $(grep -c '^  - url:' "$OUT") шт., синхронизатор перезапущен"

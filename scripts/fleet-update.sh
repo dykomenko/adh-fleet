@@ -1,36 +1,38 @@
 #!/usr/bin/env bash
 #
-# Обновляет AdGuard Home на всём парке в одном окне времени.
-# Запускается НА ORIGIN (там есть netbird status со списком нод).
+# Обновляет AdGuard Home на нодах. Запускается С РАБОЧЕЙ МАШИНЫ.
 #
-#   ./fleet-update.sh          — обновить всё
-#   ./fleet-update.sh --list   — только показать состав парка
+#   ./scripts/fleet-update.sh node02 node03 node07
+#   ./scripts/fleet-update.sh              # хосты из NODES в .env
 #
-# Версии не должны разъезжаться дольше пары минут: пока они разные,
-# синхронизатор может спотыкаться на расхождении API.
+# Намеренно НЕ запускается на origin: держать там ssh-доступ ко всему парку
+# означает, что компрометация одной ноды открывает остальные. Рабочая машина
+# и так имеет доступ ко всем нодам — пусть управление остаётся на ней.
 
 set -euo pipefail
 
-PARALLEL=8
+PARALLEL="${PARALLEL:-8}"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-hosts() {
-  netbird status --json \
-    | jq -r '.peers.details[]? | select(.groups[]? | test("^agh-")) | .fqdn' \
-    | sort -u
-}
-
-if [[ "${1:-}" == "--list" ]]; then
-  hosts
-  exit 0
+if [[ $# -gt 0 ]]; then
+  HOSTS=("$@")
+else
+  [[ -f "$ROOT/.env" ]] && { set -a; . "$ROOT/.env"; set +a; }
+  : "${NODES:?передайте хосты аргументами или задайте NODES в .env}"
+  read -r -a HOSTS <<< "$NODES"
 fi
 
-echo "точка отката (текущий образ на этой ноде):"
-docker inspect --format '{{index .RepoDigests 0}}' adguardhome 2>/dev/null \
-  || echo "  не удалось определить"
+echo "обновляю ${#HOSTS[@]} нод, параллельно по $PARALLEL"
 echo
 
-hosts | xargs -P "$PARALLEL" -I{} -r sh -c \
-  'echo "-- {}"; ssh -o BatchMode=yes {} "cd /opt/adguardhome && docker compose pull -q && docker compose up -d" || echo "!! {} не обновилась"'
+printf '%s\n' "${HOSTS[@]}" \
+  | xargs -P "$PARALLEL" -I{} -r sh -c '
+      out=$(ssh -o BatchMode=yes -o ConnectTimeout=10 {} \
+        "cd /opt/adguardhome && docker compose pull -q && docker compose up -d" 2>&1) \
+        && echo "ok  {}" \
+        || { echo "ОШИБКА {}"; echo "$out" | sed "s/^/      /"; }
+    '
 
 echo
-echo "готово. Проверьте выборочно: docker compose -f /opt/adguardhome/docker-compose.yml images"
+echo "точка отката — digest образа до обновления фиксируется так:"
+echo "  ssh <нода> \"docker inspect --format '{{index .RepoDigests 0}}' adguardhome\""
