@@ -3,20 +3,29 @@
 # Ставит AdGuard Home на реплику. Запускается НА САМОЙ НОДЕ, от root.
 #
 #   NB_KEY_REPLICA='<setup key реплик>' AGH_PASS_HASH='<bcrypt>' \
-#     bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) 7 [имя]
+#     bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) HK01
 #
-# Первый аргумент — НОМЕР ноды, обязательно число: из него выводится сеть
-# клиентов для правила firewall. Второй, необязательный, — имя пира
-# в консоли Netbird; по умолчанию node07 для седьмой ноды.
+# Единственный обязательный аргумент — ИМЯ ноды. Под ним она появится
+# в консоли Netbird, так что удобно брать то же, что используется в остальной
+# инфраструктуре. Никаких номеров помнить не нужно.
+#
+# Второй аргумент — сеть клиентов, НЕОБЯЗАТЕЛЬНЫЙ:
+#
+#   install.sh HK01                    DNS доступен только с localhost.
+#                                      Вариант для Xray/Remnawave: клиенты
+#                                      не получают адресов в туннеле, DNS
+#                                      запрашивает сам прокси с этой же машины.
+#
+#   install.sh HK01 10.107.0.0/24      Дополнительно открывает 53-й порт
+#                                      для сети клиентов. Вариант для
+#                                      WireGuard/OpenVPN, где у клиентов
+#                                      есть адреса в туннельной подсети.
 #
 # Ключ именно РЕПЛИК (auto-assign группы agh-replica). С ключом origin нода
 # попадёт в agh-origin, и синхронизатор её не найдёт — при этом установка
 # пройдёт без единой ошибки.
 #
-# Единственный аргумент — номер ноды. Из него выводится сеть клиентов:
-#   нода N -> 10.(100+N).0.0/24, шлюз 10.(100+N).0.1
-#
-# AGH слушает 0.0.0.0:53 намеренно: VPN-интерфейс появляется и исчезает
+# AGH слушает 0.0.0.0:53 намеренно: туннельный интерфейс появляется и исчезает
 # при рестартах, и привязка к его адресу означала бы, что AGH не стартует,
 # если туннель поднялся позже. Доступ ограничивает firewall, а не bind-адрес.
 #
@@ -28,7 +37,8 @@ set -euo pipefail
 REPO="${REPO:-https://raw.githubusercontent.com/dykomenko/adh-fleet/main}"
 APP_DIR=/opt/adguardhome
 
-NUM="${1:?укажите номер ноды, например 7}"
+NODE_NAME="${1:?укажите имя ноды, например HK01}"
+CLIENT_NET="${2:-${CLIENT_NET:-}}"
 
 # Принимаем имя ровно как в .env, чтобы не было шага переименования:
 # ключей два, и подставить не тот — значит увести ноду в группу agh-origin,
@@ -56,20 +66,27 @@ if [[ ! "$AGH_PASS_HASH" =~ ^\$2[aby]\$[0-9]{2}\$.{53}$ ]]; then
   exit 1
 fi
 
-[[ "$NUM" =~ ^[0-9]+$ ]] || { echo "номер ноды должен быть числом" >&2; exit 1; }
-(( NUM >= 1 && NUM <= 154 )) || { echo "номер вне диапазона 1..154" >&2; exit 1; }
+[[ "$NODE_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$ ]] || {
+  echo "имя ноды «$NODE_NAME» не годится для hostname." >&2
+  echo "Допустимы буквы, цифры, точка, дефис и подчёркивание. Например: HK01" >&2
+  exit 1
+}
+
+if [[ -n "$CLIENT_NET" ]]; then
+  [[ "$CLIENT_NET" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}/[0-9]{1,2}$ ]] || {
+    echo "сеть клиентов «$CLIENT_NET» не похожа на CIDR, например 10.107.0.0/24" >&2
+    exit 1
+  }
+fi
+
 [[ $EUID -eq 0 ]] || { echo "нужен root" >&2; exit 1; }
 
-CLIENT_NET="10.$((100 + NUM)).0.0/24"
-VPN_GW="10.$((100 + NUM)).0.1"
-
-# Имя пира в Netbird. По умолчанию выводится из номера — в консоли тогда
-# ровный список node01…node30 вместо сгенерированных хостером имён вроде
-# instance101672, в которых на тридцати нодах не разобраться.
-# Второй аргумент позволяет задать своё имя.
-NODE_NAME="${2:-node$(printf '%02d' "$NUM")}"
-
-echo "нода $NODE_NAME (хост $(hostname -s)), номер $NUM, сеть клиентов $CLIENT_NET"
+echo "нода $NODE_NAME (хост $(hostname -s))"
+if [[ -n "$CLIENT_NET" ]]; then
+  echo "  сеть клиентов: $CLIENT_NET — 53-й порт будет открыт для неё"
+else
+  echo "  сеть клиентов не задана — 53-й порт только с localhost"
+fi
 
 command -v docker >/dev/null || { echo "docker не установлен" >&2; exit 1; }
 command -v jq >/dev/null || { apt-get update -qq && apt-get install -y -qq jq curl; }
@@ -196,6 +213,7 @@ fi
 command -v iptables >/dev/null || { echo "iptables не найден" >&2; exit 1; }
 
 printf 'CLIENT_NET=%s\n' "$CLIENT_NET" > /etc/adh-firewall.conf
+printf 'OVERLAY_IF=%s\n' "${OVERLAY_IF:-wt0}" >> /etc/adh-firewall.conf
 curl -fsSL "$REPO/node/adh-firewall.sh"      -o /usr/local/sbin/adh-firewall.sh
 curl -fsSL "$REPO/node/adh-firewall.service" -o /etc/systemd/system/adh-firewall.service
 chmod 755 /usr/local/sbin/adh-firewall.sh
@@ -251,9 +269,13 @@ fi
 docker compose -f "$APP_DIR/docker-compose.yml" up -d
 
 echo
-echo "нода $(hostname -s) готова"
-echo "  DNS    0.0.0.0:53, доступен из $CLIENT_NET"
-echo "  шлюз   $VPN_GW — поднимите на нём VPN, если ещё не поднят"
+echo "нода $NODE_NAME готова"
+if [[ -n "$CLIENT_NET" ]]; then
+  echo "  DNS    0.0.0.0:53 — с localhost и из $CLIENT_NET"
+else
+  echo "  DNS    0.0.0.0:53 — только с localhost"
+  echo "         для Xray укажите в его конфиге: \"dns\": { \"servers\": [\"127.0.0.1\"] }"
+fi
 echo "  панель $NB_IP:3000"
 echo
 echo "фильтры приедут с origin в течение часа."

@@ -21,7 +21,12 @@ CONF=/etc/adh-firewall.conf
 [[ -f "$CONF" ]] || { echo "нет $CONF" >&2; exit 1; }
 # shellcheck source=/dev/null
 . "$CONF"
-: "${CLIENT_NET:?в $CONF не задан CLIENT_NET}"
+
+# CLIENT_NET необязателен. У Xray и подобных прокси клиенты не получают
+# адресов в туннельной подсети: DNS запрашивает сам прокси с этой же машины,
+# и localhost'а достаточно. Правило для сети клиентов нужно только там,
+# где туннель раздаёт адреса — WireGuard, OpenVPN.
+CLIENT_NET="${CLIENT_NET:-}"
 
 # Панель разрешаем по ИНТЕРФЕЙСУ оверлея, а не по диапазону адресов.
 #
@@ -59,7 +64,7 @@ apply() {
   "$ipt" -A "$CHAIN" -p tcp --dport 53   -s "$localhost_net" -j ACCEPT
   "$ipt" -A "$CHAIN" -p tcp --dport 3000 -s "$localhost_net" -j ACCEPT
 
-  if [[ "$client_rules" == yes ]]; then
+  if [[ "$client_rules" == yes && -n "$CLIENT_NET" ]]; then
     # DNS — только клиентам этой ноды
     "$ipt" -A "$CHAIN" -p udp --dport 53 -s "$CLIENT_NET" -j ACCEPT
     "$ipt" -A "$CHAIN" -p tcp --dport 53 -s "$CLIENT_NET" -j ACCEPT
@@ -80,4 +85,4 @@ apply iptables  127.0.0.0/8 yes
 # резолвером по IPv6, что легко упустить.
 apply ip6tables ::1/128     no
 
-echo "firewall: 53 открыт для $CLIENT_NET, 3000 — с интерфейса $OVERLAY_IF"
+echo "firewall: 53 — с localhost${CLIENT_NET:+ и из $CLIENT_NET}, 3000 — с интерфейса $OVERLAY_IF"
