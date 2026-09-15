@@ -78,16 +78,18 @@
   }
 
   .wrap {
-    max-width: 920px;
+    max-width: 880px;
     margin: 0 auto;
-    padding-block: 40px 72px;
+    padding-block: 36px 72px;
     padding-left: 20px;
     padding-right: 20px;
   }
 
   p, ul, ol { max-width: var(--measure); }
 
-  .masthead { border-bottom: 2px solid var(--ink); padding-bottom: 22px; }
+  /* ---------- masthead ---------- */
+
+  .masthead { border-bottom: 2px solid var(--ink); padding-bottom: 20px; }
 
   .eyebrow {
     font-family: var(--f-mono);
@@ -96,27 +98,29 @@
     letter-spacing: 0.13em;
     text-transform: uppercase;
     color: var(--ink-faint);
-    margin: 0 0 14px;
+    margin: 0 0 12px;
   }
 
   h1 {
     font-family: var(--f-serif);
     font-weight: 700;
-    font-size: clamp(30px, 5.4vw, 44px);
+    font-size: clamp(28px, 5vw, 40px);
     line-height: 1.1;
     letter-spacing: -0.015em;
     text-wrap: balance;
-    margin: 0 0 12px;
+    margin: 0 0 10px;
   }
 
   .standfirst {
-    font-size: 17px;
+    font-size: 16.5px;
     color: var(--ink-muted);
     margin: 0;
     max-width: 62ch;
   }
 
-  .part { margin-top: 56px; }
+  /* ---------- sections ---------- */
+
+  .part { margin-top: 52px; }
 
   .part-head {
     display: flex;
@@ -124,14 +128,14 @@
     gap: 14px;
     flex-wrap: wrap;
     border-bottom: 1px solid var(--hairline);
-    padding-bottom: 10px;
-    margin-bottom: 26px;
+    padding-bottom: 9px;
+    margin-bottom: 22px;
   }
 
   h2 {
     font-family: var(--f-serif);
     font-weight: 600;
-    font-size: 26px;
+    font-size: 25px;
     line-height: 1.2;
     letter-spacing: -0.01em;
     margin: 0;
@@ -141,12 +145,11 @@
   h3 {
     font-family: var(--f-sans);
     font-weight: 600;
-    font-size: 17px;
+    font-size: 16.5px;
     line-height: 1.35;
-    margin: 30px 0 10px;
+    margin: 26px 0 8px;
     text-wrap: balance;
   }
-  .step h3 { margin-top: 0; }
 
   .part-note {
     font-family: var(--f-mono);
@@ -155,69 +158,74 @@
     margin-left: auto;
   }
 
-  .chip {
-    display: inline-block;
+  /* ---------- primary command card ---------- */
+
+  .cmd {
+    margin: 18px 0;
+    border: 1px solid var(--hairline);
+    border-left: 4px solid var(--origin);
+    border-radius: 6px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .cmd.replica { border-left-color: var(--replica); }
+
+  .cmd-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 13px 18px 0;
+  }
+  .cmd-head h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .cmd-where {
     font-family: var(--f-mono);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding: 3px 9px;
-    border-radius: 3px;
-    white-space: nowrap;
+    color: var(--ink-faint);
+    margin-left: auto;
   }
-  .chip.origin  { background: var(--origin-soft);  color: var(--origin); }
-  .chip.replica { background: var(--replica-soft); color: var(--replica); }
 
-  .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; max-width: none; }
-
-  .step {
-    counter-increment: step;
-    position: relative;
-    padding: 0 0 34px 52px;
-    border-left: 2px solid var(--hairline);
-    margin-left: 13px;
-  }
-  .step:last-child { border-left-color: transparent; padding-bottom: 8px; }
-
-  .step::before {
-    content: counter(step);
-    position: absolute;
-    left: -14px;
-    top: -2px;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
+  .cmd pre {
+    margin: 12px 0 0;
+    padding: 15px 18px;
+    background: var(--code-bg);
+    color: var(--code-ink);
     font-family: var(--f-mono);
-    font-size: 12px;
-    font-weight: 600;
-    background: var(--ground);
-    border: 2px solid var(--hairline);
-    color: var(--ink-muted);
+    font-size: 13.5px;
+    line-height: 1.7;
+    /* Главные команды переносятся, а не скроллятся вбок: иначе имя ноды
+       в конце строки оказывается за краем — ровно то, что здесь меняют. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
-  .origin-part  .step::before { border-color: var(--origin);  color: var(--origin); }
-  .replica-part .step::before { border-color: var(--replica); color: var(--replica); }
-  .origin-part  .step { border-left-color: var(--origin-soft); }
-  .replica-part .step { border-left-color: var(--replica-soft); }
-  .origin-part  .step:last-child,
-  .replica-part .step:last-child { border-left-color: transparent; }
+  .cmd-note {
+    margin: 0;
+    padding: 11px 18px 13px;
+    font-size: 14.5px;
+    color: var(--ink-muted);
+    max-width: none;
+  }
 
-  .step > p:first-of-type { margin-top: 0; }
+  /* ---------- secondary code ---------- */
 
   .code {
-    margin: 14px 0;
-    border-radius: 6px;
+    margin: 12px 0;
+    border-radius: 5px;
     overflow: hidden;
     background: var(--code-bg);
   }
-
   .code-bar {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 7px 14px;
+    padding: 6px 14px;
     border-bottom: 1px solid rgba(255,255,255,0.09);
     font-family: var(--f-mono);
     font-size: 11px;
@@ -226,16 +234,14 @@
     color: var(--code-dim);
   }
   .code-bar .where { margin-left: auto; text-transform: none; letter-spacing: 0; }
-
   .code pre {
     margin: 0;
-    padding: 14px;
+    padding: 13px 14px;
     overflow-x: auto;
     font-family: var(--f-mono);
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.65;
     color: var(--code-ink);
-    tab-size: 2;
   }
 
   code.inl {
@@ -248,13 +254,47 @@
     word-break: break-word;
   }
 
+  /* ---------- steps ---------- */
+
+  .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; max-width: none; }
+
+  .step {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 30px 46px;
+    border-left: 2px solid var(--origin-soft);
+    margin-left: 12px;
+  }
+  .step:last-child { border-left-color: transparent; padding-bottom: 4px; }
+  .step::before {
+    content: counter(step);
+    position: absolute;
+    left: -13px;
+    top: -3px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--ground);
+    border: 2px solid var(--origin);
+    color: var(--origin);
+  }
+  .step > h3:first-child { margin-top: 0; }
+  .step > p:first-of-type { margin-top: 0; }
+
+  /* ---------- notes ---------- */
+
   .note {
-    margin: 16px 0;
-    padding: 14px 18px;
+    margin: 14px 0;
+    padding: 13px 17px;
     border-left: 3px solid var(--ink-faint);
     background: var(--surface);
     border-radius: 0 4px 4px 0;
-    font-size: 15px;
+    font-size: 14.5px;
   }
   .note p { margin: 0; max-width: none; }
   .note p + p { margin-top: 8px; }
@@ -267,22 +307,58 @@
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--warn);
-    margin-bottom: 6px;
+    margin-bottom: 5px;
   }
   .note:not(.warn) .note-label { color: var(--ink-faint); }
 
-  .table-scroll { overflow-x: auto; margin: 22px 0; }
+  /* ---------- details ---------- */
 
+  details {
+    margin: 9px 0;
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    background: var(--surface);
+  }
+  details > summary {
+    cursor: pointer;
+    padding: 10px 16px;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+  }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before {
+    content: "+";
+    font-family: var(--f-mono);
+    color: var(--ink-faint);
+    flex: none;
+  }
+  details[open] > summary { color: var(--ink); font-weight: 600; }
+  details[open] > summary::before { content: "−"; }
+  details > summary:hover { color: var(--origin); }
+  details > summary:focus-visible { outline: 2px solid var(--origin); outline-offset: -2px; }
+
+  .details-body { padding: 0 16px 13px; font-size: 15px; }
+  .details-body > :first-child { margin-top: 0; }
+  .details-body > :last-child { margin-bottom: 0; }
+  .details-body p, .details-body ul { max-width: none; }
+
+  /* ---------- table ---------- */
+
+  .table-scroll { overflow-x: auto; margin: 18px 0; }
   table {
     border-collapse: collapse;
     width: 100%;
-    min-width: 520px;
+    min-width: 500px;
     font-size: 14.5px;
-    font-variant-numeric: tabular-nums;
   }
   th, td {
     text-align: left;
-    padding: 10px 14px 10px 0;
+    padding: 9px 14px 9px 0;
     border-bottom: 1px solid var(--hairline);
     vertical-align: baseline;
   }
@@ -297,22 +373,26 @@
   }
   td.mono { font-family: var(--f-mono); font-size: 13px; }
 
-  .diagram-scroll { overflow-x: auto; margin: 26px 0 8px; padding-bottom: 4px; }
-  .diagram-scroll svg { display: block; min-width: 620px; max-width: 100%; height: auto; }
-  .caption { font-size: 13px; color: var(--ink-faint); font-family: var(--f-mono); margin: 0; }
+  /* ---------- diagram ---------- */
+
+  .diagram-scroll { overflow-x: auto; margin: 20px 0 6px; padding-bottom: 4px; }
+  .diagram-scroll svg { display: block; min-width: 580px; max-width: 100%; height: auto; }
+  .caption { font-size: 12.5px; color: var(--ink-faint); font-family: var(--f-mono); margin: 0; }
+
+  /* ---------- checklist ---------- */
 
   .checklist { list-style: none; margin: 0; padding: 0; max-width: none; display: grid; gap: 2px; }
   .checklist li { margin: 0; }
   .checklist label {
     display: flex;
-    gap: 12px;
+    gap: 11px;
     align-items: flex-start;
-    padding: 11px 14px;
+    padding: 10px 14px;
     background: var(--surface);
     border: 1px solid var(--hairline);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 14.5px;
   }
   .checklist input {
     margin: 4px 0 0;
@@ -324,58 +404,24 @@
   .checklist input:focus-visible { outline: 2px solid var(--origin); outline-offset: 2px; }
   .checklist input:checked + span { color: var(--ink-faint); text-decoration: line-through; }
 
-  details {
-    margin: 10px 0;
-    border: 1px solid var(--hairline);
-    border-radius: 5px;
-    background: var(--surface);
-  }
-  details + details { margin-top: -1px; }
+  ul.plain { padding-left: 19px; }
+  ul.plain li { margin-bottom: 6px; }
 
-  details > summary {
-    cursor: pointer;
-    padding: 11px 16px;
-    font-size: 15px;
-    font-weight: 600;
-    list-style: none;
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-  }
-  details > summary::-webkit-details-marker { display: none; }
-  details > summary::before {
-    content: "+";
-    font-family: var(--f-mono);
-    font-weight: 400;
-    color: var(--ink-faint);
-    flex: none;
-  }
-  details[open] > summary::before { content: "−"; }
-  details > summary:hover { color: var(--origin); }
-  details > summary:focus-visible { outline: 2px solid var(--origin); outline-offset: -2px; }
-
-  .details-body { padding: 2px 16px 14px; }
-  .details-body > :first-child { margin-top: 0; }
-  .details-body > :last-child { margin-bottom: 0; }
-  .details-body p { max-width: none; }
-
-  ul.plain { padding-left: 20px; }
-  ul.plain li { margin-bottom: 7px; }
-
-  hr.rule { border: 0; border-top: 1px solid var(--hairline); margin: 40px 0 0; }
+  hr.rule { border: 0; border-top: 1px solid var(--hairline); margin: 38px 0 0; }
 
   .foot {
-    margin-top: 44px;
-    font-size: 13.5px;
+    margin-top: 36px;
+    font-size: 13px;
     color: var(--ink-faint);
     font-family: var(--f-mono);
     max-width: none;
   }
 
   @media (max-width: 560px) {
-    .wrap { padding-block: 28px 56px; }
-    .step { padding-left: 34px; }
+    .wrap { padding-block: 26px 52px; }
+    .step { padding-left: 32px; }
     .part-note { margin-left: 0; width: 100%; }
+    .cmd-where { margin-left: 0; width: 100%; }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -386,351 +432,275 @@
 <div class="wrap">
 
   <header class="masthead">
-    <p class="eyebrow">Runbook · DNS-инфраструктура · 30 нод</p>
+    <p class="eyebrow">Runbook · парк из 30 нод</p>
     <h1>AdGuard Home на каждой ноде</h1>
-    <p class="standfirst">AGH на всех VPN-серверах с синхронизацией фильтров с одной origin-ноды. Единой точки отказа нет, ручная настройка существует ровно в одном месте, а новая нода ставится одной командой прямо с GitHub и находится синхронизатором сама.</p>
+    <p class="standfirst">AGH на всех VPN-серверах, фильтры синхронизируются с одной origin-ноды. Единой точки отказа нет. Новая нода — одна команда.</p>
   </header>
 
   <section class="part">
     <div class="part-head">
-      <h2>Что получается в итоге</h2>
+      <h2>Шпаргалка</h2>
+      <span class="part-note">то, что действительно набирается</span>
+    </div>
+
+    <p>Четыре команды покрывают всю повседневную работу с парком. Остальное в этом документе — разовая настройка origin и разбор поломок, читается по надобности.</p>
+
+    <div class="cmd replica">
+      <div class="cmd-head">
+        <h3>Поднять новую реплику</h3>
+        <span class="cmd-where">на самой ноде, root</span>
+      </div>
+<pre>NB_KEY_REPLICA='...' AGH_PASS_HASH='...' \
+  bash &lt;(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) HK01</pre>
+      <p class="cmd-note">Меняется только имя в конце. Значения — из <code class="inl">.env</code> под теми же именами. После этого остаётся один ручной шаг: убрать секцию <code class="inl">dns</code> из конфига Xray в панели Remnawave.</p>
+    </div>
+
+    <div class="cmd">
+      <div class="cmd-head">
+        <h3>Открыть панель любой ноды</h3>
+        <span class="cmd-where">с рабочей машины</span>
+      </div>
+<pre>ssh -L 3000:127.0.0.1:3000 root@HK01</pre>
+      <p class="cmd-note">Дальше <code class="inl">http://localhost:3000</code>, логин <code class="inl">admin</code>. Для второй ноды одновременно — другой локальный порт: <code class="inl">-L 3001:127.0.0.1:3000</code>.</p>
+    </div>
+
+    <div class="cmd">
+      <div class="cmd-head">
+        <h3>Разослать правила немедленно</h3>
+        <span class="cmd-where">на origin</span>
+      </div>
+<pre>/opt/agh-sync/sync-now.sh</pre>
+      <p class="cmd-note">Обычный график — раз в час. Эта команда пересобирает список реплик и прогоняет синхронизацию сразу, показывая логи.</p>
+    </div>
+
+    <div class="cmd">
+      <div class="cmd-head">
+        <h3>Обновить AGH на парке</h3>
+        <span class="cmd-where">с рабочей машины</span>
+      </div>
+<pre>./scripts/fleet-update.sh HK01 HK02 HK03</pre>
+      <p class="cmd-note">Без аргументов берёт хосты из <code class="inl">NODES</code> в <code class="inl">.env</code>. Запускается не с origin намеренно — там нет ssh-доступа к парку.</p>
+    </div>
+
+    <details>
+      <summary>Где взять значения для .env</summary>
+      <div class="details-body">
+        <ul class="plain">
+          <li><code class="inl">NB_KEY_ORIGIN</code>, <code class="inl">NB_KEY_REPLICA</code> — два setup key из консоли Netbird, с auto-assign групп <code class="inl">agh-origin</code> и <code class="inl">agh-replica</code>;</li>
+          <li><code class="inl">AGH_PASS_HASH</code> — bcrypt-хеш пароля админа, печатает <code class="inl">make-template.sh</code> на origin.</li>
+        </ul>
+        <p>Значения берите в одинарные кавычки: в хеше есть <code class="inl">$</code>, без них оболочка съест часть строки.</p>
+        <p>Ключи не взаимозаменяемы. С origin-ключом реплика попадёт в группу <code class="inl">agh-origin</code>, синхронизатор её не найдёт, а установка при этом пройдёт без единой ошибки.</p>
+      </div>
+    </details>
+  </section>
+
+  <hr class="rule">
+
+  <section class="part">
+    <div class="part-head">
+      <h2>Как это устроено</h2>
     </div>
 
     <div class="diagram-scroll">
-      <svg viewBox="0 0 660 320" role="img" aria-label="Схема: origin-нода с синхронизатором раздаёт конфигурацию тридцати репликам через оверлей Netbird; список реплик генерируется автоматически">
+      <svg viewBox="0 0 620 250" role="img" aria-label="Схема: origin-нода с синхронизатором раздаёт конфигурацию репликам через оверлей Netbird">
         <g font-family="IBM Plex Mono, monospace" font-size="10.5">
+          <rect x="16" y="170" width="588" height="30" rx="4" fill="var(--surface-alt)"/>
+          <text x="28" y="189" fill="var(--ink-muted)" font-size="11">оверлей Netbird · agh-origin → agh-replica, только tcp/3000</text>
 
-          <rect x="16" y="214" width="628" height="34" rx="4" fill="var(--surface-alt)"/>
-          <text x="30" y="235" fill="var(--ink-muted)" font-size="11">оверлей Netbird · agh-origin → agh-replica, только tcp/3000 · больше ничего не открыто</text>
+          <rect x="16" y="40" width="200" height="112" rx="5" fill="var(--surface)" stroke="var(--origin)" stroke-width="2"/>
+          <rect x="16" y="40" width="200" height="23" rx="5" fill="var(--origin-soft)"/>
+          <text x="27" y="56" fill="var(--origin)" font-weight="600" letter-spacing="0.8">ORIGIN · одна нода</text>
+          <text x="27" y="84" fill="var(--ink)" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">AdGuard Home</text>
+          <text x="27" y="103" fill="var(--ink-muted)">здесь настраиваются фильтры</text>
+          <text x="27" y="126" fill="var(--origin)" font-weight="500">+ синхронизатор</text>
+          <text x="27" y="141" fill="var(--origin)" font-weight="500">+ генератор списка реплик</text>
+          <line x1="116" y1="152" x2="116" y2="170" stroke="var(--origin)" stroke-width="1.5"/>
 
-          <!-- ORIGIN -->
-          <rect x="16" y="56" width="216" height="130" rx="5" fill="var(--surface)" stroke="var(--origin)" stroke-width="2"/>
-          <rect x="16" y="56" width="216" height="24" rx="5" fill="var(--origin-soft)"/>
-          <text x="28" y="73" fill="var(--origin)" font-weight="600" letter-spacing="0.8">ORIGIN · node01</text>
-          <text x="28" y="102" fill="var(--ink)" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">AdGuard Home</text>
-          <text x="28" y="121" fill="var(--ink-muted)">единственное место,</text>
-          <text x="28" y="136" fill="var(--ink-muted)">где вы настраиваете фильтры</text>
-          <text x="28" y="160" fill="var(--origin)" font-weight="500">+ adguardhome-sync</text>
-          <text x="28" y="175" fill="var(--origin)" font-weight="500">+ генератор списка реплик</text>
-          <line x1="124" y1="186" x2="124" y2="214" stroke="var(--origin)" stroke-width="1.5"/>
+          <rect x="296" y="52" width="300" height="100" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5" opacity="0.35"/>
+          <rect x="288" y="46" width="300" height="100" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5" opacity="0.6"/>
+          <rect x="280" y="40" width="300" height="100" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5"/>
+          <rect x="280" y="40" width="300" height="23" rx="5" fill="var(--replica-soft)"/>
+          <text x="291" y="56" fill="var(--replica)" font-weight="600" letter-spacing="0.8">РЕПЛИКИ · остальные 29</text>
+          <text x="291" y="84" fill="var(--ink)" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">AdGuard Home</text>
+          <text x="291" y="103" fill="var(--ink-muted)">конфиг подкладывается файлом,</text>
+          <text x="291" y="118" fill="var(--ink-muted)">мастер установки не запускается</text>
+          <text x="291" y="135" fill="var(--replica)">правки здесь затрутся синхронизацией</text>
+          <line x1="430" y1="140" x2="430" y2="170" stroke="var(--replica)" stroke-width="1.5" stroke-dasharray="3 3"/>
 
-          <!-- REPLICAS stack -->
-          <rect x="316" y="68" width="300" height="106" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5" opacity="0.35"/>
-          <rect x="308" y="62" width="300" height="106" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5" opacity="0.6"/>
-          <rect x="300" y="56" width="300" height="106" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5"/>
-          <rect x="300" y="56" width="300" height="24" rx="5" fill="var(--replica-soft)"/>
-          <text x="312" y="73" fill="var(--replica)" font-weight="600" letter-spacing="0.8">REPLICA · node02 … node30</text>
-          <text x="312" y="102" fill="var(--ink)" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">AdGuard Home</text>
-          <text x="312" y="121" fill="var(--ink-muted)">конфиг подкладывается файлом,</text>
-          <text x="312" y="136" fill="var(--ink-muted)">мастер установки не запускается</text>
-          <text x="312" y="152" fill="var(--replica)">имя и группа задаются при установке</text>
-          <line x1="450" y1="174" x2="450" y2="214" stroke="var(--replica)" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <text x="16" y="28" fill="var(--ink-faint)">клиенты</text>
+          <text x="280" y="28" fill="var(--ink-faint)">клиенты</text>
+          <line x1="116" y1="32" x2="116" y2="40" stroke="var(--ink-faint)" stroke-width="1"/>
+          <line x1="430" y1="32" x2="430" y2="40" stroke="var(--ink-faint)" stroke-width="1"/>
 
-          <!-- clients -->
-          <text x="16" y="34" fill="var(--ink-faint)">клиенты ноды</text>
-          <text x="300" y="34" fill="var(--ink-faint)">клиенты своих нод</text>
-          <line x1="124" y1="40" x2="124" y2="56" stroke="var(--ink-faint)" stroke-width="1"/>
-          <line x1="450" y1="40" x2="450" y2="56" stroke="var(--ink-faint)" stroke-width="1"/>
-
-          <!-- flows -->
-          <text x="30" y="276" fill="var(--origin)" font-weight="500">sync раз в час →</text>
-          <path d="M 156 272 L 636 272" stroke="var(--origin)" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/>
-          <path d="M 636 272 l -7 -4 l 0 8 z" fill="var(--origin)"/>
-          <text x="30" y="302" fill="var(--ink-faint)">список реплик пересобирается по группе раз в час · немедленно — sync-now.sh</text>
+          <text x="28" y="226" fill="var(--origin)" font-weight="500">sync раз в час →</text>
+          <path d="M 140 222 L 596 222" stroke="var(--origin)" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/>
+          <path d="M 596 222 l -7 -4 l 0 8 z" fill="var(--origin)"/>
+          <text x="28" y="244" fill="var(--ink-faint)">список реплик пересобирается сам — новая нода подхватывается без правок на origin</text>
         </g>
       </svg>
     </div>
-    <p class="caption">Добавление ноды не требует ни одной правки на origin.</p>
+    <p class="caption">Падение любой ноды задевает только её клиентов, у которых в этот момент всё равно нет туннеля.</p>
 
-    <div class="note">
-      <span class="note-label">Код</span>
-      <p>Скрипты, compose-файлы и шаблон конфига живут в репозитории <code class="inl">dykomenko/adh-fleet</code>, там же пошаговые <code class="inl">docs/origin.md</code> и <code class="inl">docs/replica.md</code>. Эта страница — обзор схемы целиком; источник правды — репозиторий.</p>
-      <p>Секретов в нём нет, поэтому ноды тянут всё прямо с GitHub. Setup key и хеш пароля лежат в <code class="inl">.env</code> на рабочей машине и передаются переменными окружения в командной строке установки; пароль админа — только на origin, в <code class="inl">admin.pass</code> с правами 600.</p>
+    <div class="note warn">
+      <span class="note-label">Xray: две обязательные половины</span>
+      <p>Чтобы фильтрация дошла до клиентов, нужны обе — по отдельности не работает ни одна, а симптом одинаковый: в журнале AGH только ваши собственные проверки и ни одного клиентского домена.</p>
+      <p><strong>1.</strong> В конфиге Xray <strong>нет секции <code class="inl">dns</code></strong>. Пока она есть, Xray резолвит встроенным резолвером через прописанные там серверы и системный не спрашивает вовсе. <strong>2.</strong> <code class="inl">/etc/resolv.conf</code> указывает на <code class="inl">127.0.0.1</code> — это делает <code class="inl">install.sh</code>.</p>
     </div>
 
-    <h3>Как клиенты попадают на DNS</h3>
-    <p>AGH слушает <code class="inl">0.0.0.0:53</code>, а ограничивает доступ firewall, а не bind-адрес. Причина: интерфейс туннеля появляется и исчезает при рестартах, и если он поднялся позже AGH, тот не стартует вовсе.</p>
+    <details>
+      <summary>Почему AGH слушает 0.0.0.0, а не адрес туннеля</summary>
+      <div class="details-body">
+        <p>Интерфейс туннеля появляется и исчезает при рестартах. Если он поднялся позже AGH, тот не стартует вовсе. Плюс на свежем сервере, где VPN ещё не поднят, такого адреса в списке мастера просто нет.</p>
+        <p>Доступ ограничивает firewall: отдельная цепочка <code class="inl">ADH-INPUT</code> ровно для портов 53 и 3000. Политика <code class="inl">INPUT</code> не меняется, поэтому правила уже настроенного VPN остаются нетронутыми, а SSH не затрагивается вообще — отрезать себе доступ невозможно.</p>
+        <p>Порт 53 открыт с localhost; если туннель раздаёт клиентам адреса, вторым аргументом <code class="inl">install.sh</code> передаётся их сеть. Порт 3000 — только с интерфейса оверлея. Правила живут в памяти ядра, поэтому юнит накатывает их при каждой загрузке, до старта docker.</p>
+      </div>
+    </details>
 
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr><th>Схема VPN</th><th>Кто спрашивает DNS</th><th>Что открывает firewall</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Xray, Remnawave</td>
-            <td>сам прокси, с этой же машины</td>
-            <td class="mono">только localhost</td>
-          </tr>
-          <tr>
-            <td>WireGuard, OpenVPN</td>
-            <td>клиент, из туннельной сети</td>
-            <td class="mono">localhost + сеть клиентов</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <p>В первом случае при установке ничего указывать не нужно. Во втором сеть клиентов передаётся вторым аргументом, и она же попадает в правило iptables.</p>
-
-    <div class="note">
-      <span class="note-label">Сети клиентов не должны пересекаться</span>
-      <p>Персональные правила в AGH привязаны к IP клиента. Если туннельные сети разных нод перекроются, правила начнут срабатывать не на тех людях. Удобная схема — выводить сеть из номера ноды: <code class="inl">10.(100+N).0.0/24</code>, то есть седьмая нода получает <code class="inl">10.107.0.0/24</code>.</p>
-    </div>
-
-    <p>Адреса в оверлее назначает Netbird — знать их заранее не нужно, синхронизатор находит реплики сам.</p>
+    <details>
+      <summary>Что эта схема не даёт</summary>
+      <div class="details-body">
+        <p>Сводной статистики и единого лога запросов: и то, и другое остаётся на каждой ноде своим. Это прямая плата за отсутствие единой точки отказа. Нужна сводная картина — снимайте её отдельно через API статистики AGH в Prometheus или ClickHouse.</p>
+      </div>
+    </details>
   </section>
 
   <hr class="rule">
 
   <section class="part">
     <div class="part-head">
-      <h2>Часть 0 · Оверлей</h2>
-      <span class="part-note">один раз, в консоли Netbird</span>
+      <h2>Развернуть origin</h2>
+      <span class="part-note">один раз за весь проект</span>
     </div>
 
-    <p>Синхронизатор своей связности не приносит — ему нужно, чтобы origin дотягивался до панели каждой реплики. Оверлей закрывает это без единого конфига на нодах.</p>
-
-    <p>Регистрируемся на <code class="inl">app.netbird.io</code> и делаем четыре вещи. Все — до того, как поднимать первую ноду.</p>
+    <p>Единственная нода, которую вы настраиваете руками. Дальше сюда заходят только чтобы поменять фильтры.</p>
 
     <ol class="steps">
-      <li class="step">
-        <h3>Завести группы</h3>
-        <p><code class="inl">agh-origin</code> и <code class="inl">agh-replica</code>. На них завязано и разграничение доступа, и автообнаружение реплик.</p>
-      </li>
 
       <li class="step">
-        <h3>Создать два setup key</h3>
-        <p>Оба с auto-assign нужной группы — тогда группа назначается сама при первом подключении и в консоли руками ничего трогать не нужно:</p>
+        <h3>Консоль Netbird</h3>
+        <p>Четыре вещи, до того как трогать серверы:</p>
         <ul class="plain">
-          <li>для origin — auto-assign <code class="inl">agh-origin</code>, хватит одноразового;</li>
-          <li>для реплик — тип <strong>Reusable</strong> (по умолчанию предлагается одноразовый), auto-assign <code class="inl">agh-replica</code>.</li>
+          <li>группы <code class="inl">agh-origin</code> и <code class="inl">agh-replica</code>;</li>
+          <li>два setup key с auto-assign нужной группы — для реплик тип <strong>Reusable</strong>;</li>
+          <li><strong>истечение пиров отключить</strong>, иначе через месяц весь парк одновременно выпадет из оверлея;</li>
+          <li>политика <code class="inl">agh-origin → agh-replica</code>, TCP, порт 3000. Дефолтное <code class="inl">All → All</code> удалить.</li>
         </ul>
-        <p>Срок жизни ключа реплик выставьте с запасом — когда он истечёт, установка новых нод начнёт молча отваливаться.</p>
-      </li>
-
-      <li class="step">
-        <h3>Отключить истечение пиров</h3>
-        <div class="note warn">
-          <span class="note-label">Иначе флот отвалится целиком</span>
-          <p>С включённым peer expiration ноды через заданный срок потребуют повторной интерактивной авторизации — и весь парк одновременно выпадет из оверлея. На headless-серверах истечение надо снять и в настройках ключа, и в свойствах пиров. У Tailscale ровно та же ловушка с key expiry.</p>
-        </div>
-      </li>
-
-      <li class="step">
-        <h3>Переписать политику доступа</h3>
-        <p>Одно правило: <code class="inl">agh-origin</code> → <code class="inl">agh-replica</code>, протокол TCP, порт <code class="inl">3000</code>. Направление одностороннее — реплики не должны видеть ни друг друга, ни origin.</p>
-        <p>Больше ничего открывать не нужно. В частности, SSH: обновление парка идёт с рабочей машины, а не с origin, чтобы компрометация origin не открывала остальные ноды.</p>
-        <div class="note warn">
+        <div class="note">
           <span class="note-label">Дефолтное правило прячется</span>
-          <p>Правило <code class="inl">All → All</code> из свежего аккаунта не отображается на вкладке Policies внутри группы <code class="inl">agh-origin</code> — оно оперирует группой <code class="inl">All</code>. Проверяйте на общей странице Access Control. Пока оно живо, сужение вашей политики не меняет ничего: все ноды видят друг друга насквозь.</p>
+          <p>Оно оперирует группой <code class="inl">All</code> и потому не видно на вкладке Policies внутри группы — проверяйте на общей странице Access Control. Пока оно живо, ваша политика ничего не ограничивает.</p>
         </div>
       </li>
-    </ol>
-
-    <div class="note">
-      <span class="note-label">Альтернативы</span>
-      <p><strong>Tailscale</strong> устанавливается так же просто, но бесплатный Personal-план предназначен для личного использования — для коммерческого сервиса нужен платный. <strong>Self-hosted Netbird</strong> убирает зависимость от чужого control plane ценой ещё одного сервиса в эксплуатации. <strong>WireGuard руками</strong> на тридцати нодах не рассматривается: тридцать пар ключей и правка конфига хаба при каждой новой ноде.</p>
-    </div>
-  </section>
-
-  <hr class="rule">
-
-  <section class="part origin-part">
-    <div class="part-head">
-      <h2>Часть A · Origin-нода</h2>
-      <span class="part-note">один раз, вручную, на node01</span>
-    </div>
-
-    <p>Это единственная нода, которую вы настраиваете руками. Здесь же снимается шаблон, по которому разворачиваются все остальные.</p>
-
-    <ol class="steps">
 
       <li class="step">
-        <h3>Подключить к оверлею и освободить порт 53</h3>
+        <h3>Оверлей и порт 53</h3>
         <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+          <div class="code-bar"><span>bash</span><span class="where">origin</span></div>
 <pre>curl -fsSL https://pkgs.netbird.io/install.sh | sh
-netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 \
-  --disable-dns --dns-resolver-address 127.0.0.1:5053</pre>
+
+netbird up --management-url https://api.netbird.io:443 \
+  --setup-key "$NB_KEY_ORIGIN" --hostname node01 \
+  --disable-dns --dns-resolver-address 127.0.0.1:5053
+
+sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
+systemctl restart systemd-resolved
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+
+ss -ulnp | grep ':53 ' || echo "порт 53 свободен"</pre>
         </div>
-        <div class="note warn">
-          <span class="note-label">Нужны оба DNS-флага</span>
-          <p>Проверено на netbird 0.78.2. <code class="inl">--disable-dns</code> запрещает агенту править настройки DNS системы, но его локальный резолвер при этом <strong>всё равно поднимается и занимает порт 53</strong> на оверлейном адресе — ровно тот, который нужен AdGuard Home.</p>
-          <p>Освобождает порт только второй флаг: <code class="inl">--dns-resolver-address</code> уводит резолвер в другое место. Порт 5053 взят из примера в справке netbird; 5353 тоже работает, но это порт mDNS и на образах с avahi может конфликтовать.</p>
-          <p>Плата — имена вида <code class="inl">node07.netbird.cloud</code> на нодах не разрешаются. Поэтому <code class="inl">gen-sync.sh</code> собирает список реплик по оверлейным адресам, а не по именам; настраивать для этого ничего не нужно.</p>
-          <div class="code" style="margin-top:12px">
-            <div class="code-bar"><span>bash</span><span class="where">проверка</span></div>
-<pre>ss -ulnp | grep ':53 ' || echo "порт 53 свободен"</pre>
+        <details>
+          <summary>Зачем два DNS-флага и почему обязательна строка про resolv.conf</summary>
+          <div class="details-body">
+            <p><code class="inl">--disable-dns</code> запрещает агенту править настройки DNS системы, но его локальный резолвер всё равно поднимается и <strong>занимает порт 53</strong> — тот самый, который нужен AGH. Освобождает порт только <code class="inl">--dns-resolver-address</code>. Проверено на netbird 0.78.2.</p>
+            <p>Строка с <code class="inl">ln -sf</code> обязательна: без неё <code class="inl">/etc/resolv.conf</code> продолжает указывать на <code class="inl">127.0.0.53</code>, который после отключения stub-listener больше не слушает. Нода остаётся без резолвинга — перестают работать <code class="inl">apt</code>, <code class="inl">docker pull</code> и сам AGH.</p>
+            <p><code class="inl">--management-url</code> указывается явно: без него агент берёт адрес из унаследованного состояния, и по выводу этого не понять.</p>
           </div>
-        </div>
-        <div class="note warn">
-          <span class="note-label">Если агент уже стоял</span>
-          <p>Частый случай на VPS, где netbird ставили раньше. Установщик откажется работать («NetBird service is running») и выйдет, <strong>оставив старый бинарь</strong>, а <code class="inl">netbird up</code> ответит «Already connected» и не применит ни ключ, ни флаги. Со старым бинарём нужного флага может не оказаться вовсе.</p>
-          <p>Признак — порт 53 занят самим агентом: <code class="inl">ss -ulnp | grep ':53 '</code> покажет <code class="inl">netbird</code> на оверлейном адресе.</p>
-        </div>
-        <p>Лечится полной переустановкой со сбросом конфигурации. На репликах <code class="inl">install.sh</code> делает это сам:</p>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>systemctl stop netbird
-curl -fsSL https://pkgs.netbird.io/install.sh | sh
-netbird version
-
-systemctl stop netbird
-rm -f /etc/netbird/config.json
-systemctl start netbird
-
-netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 \
-  --disable-dns --dns-resolver-address 127.0.0.1:5053</pre>
-        </div>
-        <p>Старый пир останется в консоли Netbird отдельной записью — удалите его.</p>
-        <p>Теперь освобождаем порт 53:</p>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' \
-  /etc/systemd/resolved.conf
-sudo systemctl restart systemd-resolved
-sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf</pre>
-        </div>
-        <div class="note warn">
-          <span class="note-label">Третья строка обязательна</span>
-          <p>Без неё <code class="inl">/etc/resolv.conf</code> продолжает указывать на <code class="inl">127.0.0.53</code>, который после отключения stub-listener больше не слушает. Нода остаётся без резолвинга: перестают работать <code class="inl">apt</code>, <code class="inl">docker pull</code> и сам AGH.</p>
-        </div>
-        <p>Проверяем, что порт свободен — иначе мастер установки не даст выбрать «Все интерфейсы»:</p>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>sudo ss -ulnp | grep ':53 ' || echo "порт 53 свободен"</pre>
-        </div>
+        </details>
       </li>
 
       <li class="step">
-        <h3>Развернуть контейнер</h3>
-        <p>Файл <code class="inl">/opt/adguardhome/docker-compose.yml</code> — он одинаков на всех тридцати нодах:</p>
+        <h3>Firewall — до запуска AGH</h3>
         <div class="code">
-          <div class="code-bar"><span>yaml</span><span class="where">все ноды</span></div>
-<pre>services:
-  adguardhome:
-    image: adguard/adguardhome:latest
-    container_name: adguardhome
-    network_mode: host
-    restart: unless-stopped
-    volumes:
-      - ./work:/opt/adguardhome/work
-      - ./conf:/opt/adguardhome/conf
-    labels:
-      - "com.centurylinklabs.watchtower.enable=false"</pre>
-        </div>
-        <p><code class="inl">network_mode: host</code> обязателен: в bridge-режиме Docker занатит трафик, AGH увидит все запросы как приходящие с адреса docker-шлюза, и статистика с персональными правилами сломается.</p>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>cd /opt/adguardhome &amp;&amp; docker compose up -d</pre>
-        </div>
-      </li>
-
-      <li class="step">
-        <h3>Пройти мастер установки — в последний раз</h3>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">рабочая машина</span></div>
-<pre>ssh -L 3000:127.0.0.1:3000 user@node01</pre>
-        </div>
-        <p>На <code class="inl">http://localhost:3000</code> задаём:</p>
-        <ul class="plain">
-          <li><strong>Веб-интерфейс</strong> — <strong>«Все интерфейсы»</strong>, порт <code class="inl">3000</code></li>
-          <li><strong>DNS-сервер</strong> — <strong>«Все интерфейсы»</strong>, порт <code class="inl">53</code></li>
-          <li><strong>Логин и пароль админа</strong> — запомните пароль, он станет общим для всего парка</li>
-        </ul>
-        <div class="note warn">
-          <span class="note-label">Оба поля — «Все интерфейсы»</span>
-          <p>Если выбрать для панели конкретный адрес, мастер упрётся в самого себя: <code class="inl">checking address 100.x.x.x:3000: bind: address already in use | 400</code>. Во время установки AGH уже слушает <code class="inl">0.0.0.0:3000</code>, и проверка доступности того же порта на конкретном адресе натыкается на его собственный сокет.</p>
-          <p>Вторая причина важнее: адреса у нод разные, и привязка к адресу origin сделала бы шаблон непригодным для реплик. <code class="inl">make-template.sh</code> откажется снимать такой шаблон.</p>
-        </div>
-        <p>Мастер слушает все интерфейсы, поэтому туннель на <code class="inl">127.0.0.1</code> здесь работает. После сохранения панель переедет на оверлейный адрес.</p>
-
-        <h3 style="margin-top:26px">Почему DNS на всех интерфейсах, а не на адресе VPN</h3>
-        <p>Привязка к адресу шлюза выглядит аккуратнее, но ломается на практике. Интерфейс WireGuard появляется и исчезает при рестартах: если туннель поднялся позже AGH, тот не стартует вовсе. А на свежем сервере, где VPN ещё не поднят, такого адреса в списке мастера просто нет.</p>
-        <p>Доступ ограничивает firewall, а не bind-адрес.</p>
-
-        <div class="note warn">
-          <span class="note-label">Правила — до того, как AGH начнёт слушать</span>
-          <p>С <code class="inl">0.0.0.0</code> нода становится открытым резолвером на публичном адресе. Такие находят за часы и начинают использовать для DNS-амплификации — прилетит abuse от хостера. Примените правила <strong>прежде</strong> чем завершите мастер.</p>
-        </div>
-
-        <p>Ставится тем же скриптом, что и на репликах — чистый iptables, без ufw: на нодах его обычно нет, а тащить пакет ради трёх правил незачем.</p>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+          <div class="code-bar"><span>bash</span><span class="where">origin</span></div>
 <pre>RAW=https://raw.githubusercontent.com/dykomenko/adh-fleet/main
 
-echo 'CLIENT_NET=10.101.0.0/24' | sudo tee /etc/adh-firewall.conf
+echo 'CLIENT_NET=' &gt; /etc/adh-firewall.conf
 
-sudo curl -fsSL "$RAW/node/adh-firewall.sh" \
-  -o /usr/local/sbin/adh-firewall.sh &amp;&amp; \
-sudo curl -fsSL "$RAW/node/adh-firewall.service" \
-  -o /etc/systemd/system/adh-firewall.service &amp;&amp; \
-sudo chmod 755 /usr/local/sbin/adh-firewall.sh
+curl -fsSL "$RAW/node/adh-firewall.sh" -o /usr/local/sbin/adh-firewall.sh &amp;&amp; \
+curl -fsSL "$RAW/node/adh-firewall.service" -o /etc/systemd/system/adh-firewall.service &amp;&amp; \
+chmod 755 /usr/local/sbin/adh-firewall.sh
 
-sudo systemctl daemon-reload
-sudo systemctl enable --now adh-firewall.service</pre>
+systemctl daemon-reload
+systemctl enable --now adh-firewall.service
+iptables -L ADH-INPUT -n -v</pre>
         </div>
+        <p>В <code class="inl">CLIENT_NET</code> впишите сеть клиентов, если туннель раздаёт им адреса. Для Xray оставьте пустым.</p>
         <div class="note warn">
-          <span class="note-label">Не пишите файлы через tee без проверки</span>
-          <p>Если curl не скачал файл, <code class="inl">tee</code> всё равно создаст его пустым. Юнит нулевой длины systemd считает <strong>замаскированным</strong>, и <code class="inl">enable</code> падает с «Unit file is masked» — причина при этом выглядит совершенно не связанной с curl. Поэтому здесь <code class="inl">-o</code> и цепочка через <code class="inl">&amp;&amp;</code>.</p>
-          <p>Если уже поймали: <code class="inl">rm -f /etc/systemd/system/adh-firewall.service /usr/local/sbin/adh-firewall.sh &amp;&amp; systemctl daemon-reload</code>, затем повторите.</p>
-        </div>
-        <div class="note">
-          <span class="note-label">Политика INPUT не меняется</span>
-          <p>Скрипт заводит отдельную цепочку <code class="inl">ADH-INPUT</code> ровно для портов 53 и 3000. Правила уже настроенного на ноде VPN остаются нетронутыми, SSH и прочие порты не затрагиваются вообще — отрезать себе доступ невозможно.</p>
-          <p>Правила iptables живут в памяти ядра и после перезагрузки исчезли бы, поэтому юнит накатывает их заново при каждой загрузке, до старта docker. Закрывается и IPv6: клиенты ходят по IPv4, а без <code class="inl">ip6tables</code> нода осталась бы открытым резолвером по IPv6 — это легко упустить.</p>
-        </div>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">проверка правил</span></div>
-<pre>sudo iptables -L ADH-INPUT -n -v</pre>
-        </div>
-
-        <p>Проверка снаружи, с другой машины — ответа быть <strong>не должно</strong>:</p>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">любой другой хост</span></div>
-<pre>dig @ПУБЛИЧНЫЙ_IP_НОДЫ example.com +time=3</pre>
+          <span class="note-label">Не пишите эти файлы через tee</span>
+          <p>При неудачном <code class="inl">curl</code> файл всё равно создаётся, только пустым. Юнит нулевой длины systemd считает <strong>замаскированным</strong>, и <code class="inl">enable</code> падает с «Unit file is masked» — сообщение никак не указывает на исходную причину.</p>
         </div>
       </li>
 
       <li class="step">
-        <h3>Настроить фильтрацию</h3>
-        <p>Всё заданное здесь разъедется по репликам автоматически: списки блокировок, пользовательские правила, апстримы (например <code class="inl">https://dns.quad9.net/dns-query</code> с bootstrap <code class="inl">9.9.9.10</code>), fallback-серверы, rewrites, сервисы и персональные клиенты.</p>
-        <div class="note">
-          <span class="note-label">Персональные клиенты на тридцати нодах</span>
-          <p>У одного человека на разных нодах разные адреса — <code class="inl">10.101.0.5</code>, <code class="inl">10.117.0.5</code> и так далее. В карточке клиента AGH перечисляется несколько идентификаторов сразу, так что впишите все его возможные адреса. Если клиенты кочуют между нодами произвольно, рассмотрите вместо этого ClientID через DoT или DoH — иначе список идентификаторов станет неуправляемым.</p>
-        </div>
-      </li>
-
-      <li class="step">
-        <h3>Снять шаблон конфига</h3>
-        <p>Готовый <code class="inl">AdGuardHome.yaml</code> с этой ноды и есть то, что превращает установку реплики в одну команду: если файл лежит на месте до первого старта, AGH не показывает мастер вовсе.</p>
-        <p>Писать его руками не надо — снимаем с работающей ноды, подставляя плейсхолдеры вместо адресов:</p>
+        <h3>AdGuard Home и мастер установки</h3>
         <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/scripts/make-template.sh \
-  -o /tmp/mt.sh
-sudo bash /tmp/mt.sh</pre>
+          <div class="code-bar"><span>bash</span><span class="where">origin</span></div>
+<pre>install -d /opt/adguardhome
+curl -fsSL "$RAW/node/docker-compose.yml" -o /opt/adguardhome/docker-compose.yml
+cd /opt/adguardhome &amp;&amp; docker compose up -d</pre>
         </div>
-        <p>Так вы не гадаете про <code class="inl">schema_version</code> и формат полей текущей версии AGH. Скрипт заменяет плейсхолдерами адреса <strong>и bcrypt-хеш пароля</strong>, а сам хеш печатает — это <code class="inl">AGH_PASS_HASH</code> для установки нод, положите его в <code class="inl">.env</code>.</p>
-        <p>Готовый шаблон заберите на рабочую машину и закоммитьте в <code class="inl">node/AdGuardHome.yaml.tmpl</code>. Секретов в нём нет, поэтому лежать он может в публичном репозитории — именно из-за этого установка реплики сводится к одной команде.</p>
-      </li>
-
-      <li class="step">
-        <h3>Поднять синхронизатор</h3>
-        <p>Одной командой — она ставит adguardhome-sync, генератор списка реплик и крон:</p>
         <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">node01, root</span></div>
-<pre>AGH_PASS='ПАРОЛЬ' sudo -E bash &lt;(curl -fsSL \
-  https://raw.githubusercontent.com/dykomenko/adh-fleet/main/origin/setup-origin.sh)</pre>
+          <div class="code-bar"><span>bash</span><span class="where">рабочая машина</span></div>
+<pre>ssh -L 3000:127.0.0.1:3000 root@node01</pre>
         </div>
+        <p>На <code class="inl">http://localhost:3000</code>: <strong>оба</strong> поля — «Все интерфейсы», порты 3000 и 53, логин <code class="inl">admin</code>. Пароль станет общим для всего парка.</p>
         <div class="note warn">
-          <span class="note-label">Здесь пароль, а не хеш</span>
-          <p>Названия похожие, спутать легко. <code class="inl">AGH_PASS</code> — пароль <strong>открытым текстом</strong>, тот, что вводили в мастере; он ложится в <code class="inl">/opt/agh-sync/admin.pass</code>, и им синхронизатор логинится в API реплик. <code class="inl">AGH_PASS_HASH</code> — bcrypt-хеш, он идёт в конфиг ноды при установке реплики, потому что AGH хранит пароли только хешированными.</p>
-          <p>Хеш создаёт учётку, открытый пароль позволяет ею воспользоваться. Скрипт откажется работать, если передать ему хеш.</p>
+          <span class="note-label">Именно «Все интерфейсы», оба поля</span>
+          <p>Если выбрать для панели конкретный адрес, мастер упрётся в самого себя: во время установки AGH уже слушает <code class="inl">0.0.0.0:3000</code>, и проверка того же порта на конкретном адресе натыкается на его собственный сокет.</p>
+          <p>Важнее второе: адреса у нод разные, и привязка к адресу origin сделала бы шаблон непригодным для реплик.</p>
         </div>
-        <p>Пароль ложится с правами 600 — это единственный секрет на origin. Сам <code class="inl">sync.yaml</code> руками не пишется, его собирает генератор из части C.</p>
-        <p>Если реплик ещё нет, скрипт честно скажет об этом и выйдет: поднимите первую ноду и запустите <code class="inl">/opt/agh-sync/sync-now.sh</code>.</p>
+        <p>Здесь же настройте фильтры, блок-листы и апстримы — это единственное место, где вы это делаете.</p>
+      </li>
+
+      <li class="step">
+        <h3>Снять шаблон</h3>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">origin</span></div>
+<pre>curl -fsSL "$RAW/scripts/make-template.sh" -o /tmp/mt.sh &amp;&amp; bash /tmp/mt.sh</pre>
+        </div>
+        <p>Скрипт напечатает <strong>bcrypt-хеш пароля</strong> — это <code class="inl">AGH_PASS_HASH</code> для установки нод, положите его в <code class="inl">.env</code>. Шаблон заберите на рабочую машину и закоммитьте в <code class="inl">node/AdGuardHome.yaml.tmpl</code>.</p>
+        <details>
+          <summary>Почему шаблон можно держать в публичном репозитории</summary>
+          <div class="details-body">
+            <p>Секретов в нём нет: адреса заменены на <code class="inl">0.0.0.0</code>, хеш пароля — плейсхолдером, а фильтры и <code class="inl">user_rules</code> вырезаны, потому что приезжают синхронизацией. Скрипт проверяет результат и откажется писать шаблон, в котором осталась привязка к адресу ноды или хоть один bcrypt-хеш.</p>
+            <p>Именно поэтому установка реплики сводится к одной команде: нода тянет с GitHub всё, что ей нужно, и ничего не приходится класть на неё заранее.</p>
+          </div>
+        </details>
+      </li>
+
+      <li class="step">
+        <h3>Синхронизатор</h3>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">origin</span></div>
+<pre>AGH_PASS='ПАРОЛЬ' bash &lt;(curl -fsSL "$RAW/origin/setup-origin.sh")</pre>
+        </div>
+        <p>Здесь нужен <strong>пароль открытым текстом</strong>, а не хеш из прошлого шага. Скрипт откажется работать, если передать ему хеш.</p>
+        <details>
+          <summary>В чём разница между AGH_PASS и AGH_PASS_HASH</summary>
+          <div class="details-body">
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Переменная</th><th>Что подставлять</th><th>Куда попадает</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">AGH_PASS</td><td>пароль открытым текстом</td><td class="mono">admin.pass на origin</td></tr>
+                  <tr><td class="mono">AGH_PASS_HASH</td><td>bcrypt-хеш</td><td class="mono">секция users на реплике</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p>Хеш создаёт учётку на ноде, открытый пароль позволяет синхронизатору ею воспользоваться: AGH хранит пароли только хешированными, а его API принимает пароль.</p>
+          </div>
+        </details>
+        <p>Если реплик ещё нет, скрипт скажет об этом и выйдет — это ожидаемо.</p>
       </li>
 
     </ol>
@@ -738,287 +708,44 @@ sudo bash /tmp/mt.sh</pre>
 
   <hr class="rule">
 
-  <section class="part replica-part">
-    <div class="part-head">
-      <h2>Часть B · Реплика</h2>
-      <span class="part-note">одна команда на ноду, 29 раз</span>
-    </div>
-
-    <p>Никакого мастера, никакого браузера, никаких правок на origin, ничего не нужно класть на ноду заранее. Одна команда на самой ноде:</p>
-
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">новая нода, root</span></div>
-<pre>NB_KEY_REPLICA='...' AGH_PASS_HASH='...' \
-  bash &lt;(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) HK01</pre>
-    </div>
-
-    <p>Единственный обязательный аргумент — <strong>имя ноды</strong>. Под ним она появится в консоли Netbird, так что удобно брать то же имя, что используется в остальной инфраструктуре. Номеров помнить не нужно.</p>
-
-    <p>Оба значения лежат в <code class="inl">.env</code> на рабочей машине под теми же именами: <code class="inl">NB_KEY_REPLICA</code> — setup key реплик, <code class="inl">AGH_PASS_HASH</code> — bcrypt-хеш пароля админа. Это хеш, а не пароль: подсмотревший команду доступа к панели не получит, а скрипт проверит формат и откажется ставить ноду с чем-то непохожим.</p>
-
-    <h3>Если у клиентов есть адреса в туннеле</h3>
-    <p>Вторым аргументом передаётся их сеть — тогда 53-й порт откроется и для неё:</p>
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">WireGuard, OpenVPN</span></div>
-<pre>... install.sh HK01 10.107.0.0/24</pre>
-    </div>
-    <p>Для Xray и Remnawave аргумент не нужен: клиенты адресов не получают, резолвит за них сам прокси с этой же машины, и localhost'а достаточно.</p>
-
-    <h3>Xray: две обязательные половины</h3>
-    <p>Чтобы фильтрация дошла до клиентов, нужны обе. По отдельности не работает ни одна, а симптом при пропуске любой одинаковый: в журнале AGH только ваши собственные проверки и ни одного клиентского домена.</p>
-    <ul class="plain">
-      <li><strong>В конфиге Xray нет секции <code class="inl">dns</code>.</strong> Пока она есть, Xray резолвит встроенным резолвером через прописанные там серверы и системный не спрашивает вовсе. Удаляется в шаблоне конфига в панели Remnawave.</li>
-      <li><strong><code class="inl">/etc/resolv.conf</code> указывает на <code class="inl">127.0.0.1</code>.</strong> Это делает <code class="inl">install.sh</code> — обычным файлом, а не символьной ссылкой, иначе systemd-resolved перезапишет.</li>
-    </ul>
-    <div class="note warn">
-      <span class="note-label">Как отличить одну половину от другой</span>
-      <p>Захватом трафика при подключённом клиенте: <code class="inl">tcpdump -ni any 'port 53 or port 853' -c 40</code>.</p>
-      <p>Запросы на <code class="inl">127.0.0.1.53</code> — всё правильно. Запросы с публичного адреса ноды на <code class="inl">8.8.8.8</code>, <code class="inl">1.1.1.1</code> или порт <code class="inl">853</code> — в конфиге Xray осталась секция <code class="inl">dns</code>. Соединения на 853-й доказывают это сами: DoT умеет только встроенный резолвер Xray, системный — нет.</p>
-    </div>
-
-    <h3>Вход в панель</h3>
-    <p>Одинаково на origin и на любой реплике: обе слушают <code class="inl">0.0.0.0:3000</code>, доступ открыт только с localhost и с интерфейса оверлея. Поэтому — ssh-туннель:</p>
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">рабочая машина</span></div>
-<pre>ssh -L 3000:127.0.0.1:3000 root@HK01</pre>
-    </div>
-    <p>Дальше <code class="inl">http://localhost:3000</code>, логин <code class="inl">admin</code> и пароль парка. Нужны две ноды одновременно — пробрасывайте на разные локальные порты: <code class="inl">-L 3001:127.0.0.1:3000</code> откроется на <code class="inl">http://localhost:3001</code>.</p>
-    <p>Если ssh ругается <code class="inl">bind: Address already in use</code>, локальный порт занят прошлым сеансом — закройте его или возьмите другой. Строку легко пропустить среди приветствия сервера.</p>
-    <div class="note">
-      <span class="note-label">На репликах панель только для просмотра</span>
-      <p>Любые правки на реплике затрутся при следующем прогоне синхронизации. Настраивать — только на origin.</p>
-    </div>
-
-    <div class="note">
-      <span class="note-label">Почему шаблон можно публиковать</span>
-      <p>В <code class="inl">node/AdGuardHome.yaml.tmpl</code> адреса и хеш пароля заменены плейсхолдерами, так что секретов в нём нет — и репозиторий со скриптами может быть публичным, а нода тянет с GitHub вообще всё. Никакого <code class="inl">scp</code> и предварительной подготовки ноды не требуется. <code class="inl">make-template.sh</code> откажется писать шаблон, в котором остался хоть один bcrypt-хеш.</p>
-    </div>
-
-    <p>Что выполняется на ноде:</p>
-
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">bootstrap-agh.sh</span></div>
-<pre>#!/usr/bin/env bash
-set -euo pipefail
-
-NUM="${1:?укажите номер ноды}"
-# имя как в .env, чтобы не было шага переименования:
-# подставить origin-ключ = увести ноду в группу agh-origin
-NB_KEY="${NB_KEY_REPLICA:-${NB_KEY:-}}"
-[[ -n "$NB_KEY" ]] || { echo "не задан ключ реплик" >&2; exit 1; }
-: "${AGH_PASS_HASH:?не задан AGH_PASS_HASH}"
-
-CLIENT_NET="10.$((100 + NUM)).0.0/24"
-
-# 1. оверлей
-curl -fsSL https://pkgs.netbird.io/install.sh | sh
-netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" \
-  --disable-dns --dns-resolver-address 127.0.0.1:5053
-NB_IP="$(netbird status --json | jq -r .netbirdIp | cut -d/ -f1)"
-
-# 2. освобождаем 53
-sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
-ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
-systemctl restart systemd-resolved
-
-# 3. firewall — ДО запуска AGH, иначе нода несколько секунд
-#    стоит открытым резолвером на публичном адресе.
-#    Отдельная цепочка только для 53 и 3000: политика INPUT
-#    не трогается, правила уже стоящего VPN остаются как были.
-printf 'CLIENT_NET=%s\n' "$CLIENT_NET" > /etc/adh-firewall.conf
-curl -fsSL "$REPO/node/adh-firewall.sh"      -o /usr/local/sbin/adh-firewall.sh
-curl -fsSL "$REPO/node/adh-firewall.service" -o /etc/systemd/system/adh-firewall.service
-chmod 755 /usr/local/sbin/adh-firewall.sh
-systemctl daemon-reload
-systemctl enable --now adh-firewall.service
-
-# 4. конфиг AGH из шаблона — мастер не запустится
-install -d /opt/adguardhome/conf /opt/adguardhome/work
-curl -fsSL "$REPO/node/docker-compose.yml"    -o /opt/adguardhome/docker-compose.yml
-curl -fsSL "$REPO/node/AdGuardHome.yaml.tmpl" -o /opt/adguardhome/AdGuardHome.yaml.tmpl
-# адреса не подставляются: и DNS, и панель слушают все интерфейсы,
-# ограничивает доступ iptables
-sed -e "s|__PASS_HASH__|$AGH_PASS_HASH|g" \
-    /opt/adguardhome/AdGuardHome.yaml.tmpl \
-    &gt; /opt/adguardhome/conf/AdGuardHome.yaml
-
-# 4. поехали
-docker compose -f /opt/adguardhome/docker-compose.yml up -d
-
-echo "нода $(hostname -s): DNS 0.0.0.0:53 из $CLIENT_NET, панель $NB_IP:3000"
-echo "фильтры приедут в течение часа, либо сразу: sync-now.sh на origin"</pre>
-    </div>
-
-    <div class="note">
-      <span class="note-label">Что происходит дальше само</span>
-      <p>Setup key назначает ноде группу <code class="inl">agh-replica</code>. Генератор на origin пересобирает список реплик по этой группе раз в час и подхватывает новичка, фильтры приезжают с ближайшим прогоном синхронизации. Вмешательство не требуется — а если ждать не хочется, на origin есть <code class="inl">/opt/agh-sync/sync-now.sh</code>.</p>
-    </div>
-
-    <h3>Проверка</h3>
-    <p>Через <code class="inl">127.0.0.1</code>, а не через адрес шлюза: если туннель на ноде не поднят, такого адреса на ней нет и <code class="inl">dig</code> уйдёт в таймаут.</p>
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">новая нода</span></div>
-<pre>dig @127.0.0.1 example.com +short      # AGH отвечает
-dig @127.0.0.1 doubleclick.net +short  # и режет рекламу</pre>
-    </div>
-    <p>Второй запрос должен вернуть <code class="inl">0.0.0.0</code> либо пустой ответ. Реальный адрес означает, что фильтры ещё не доехали — запустите на origin <code class="inl">sync-now.sh</code>.</p>
-
-    <h3>Проверка со стороны клиента</h3>
-    <p><code class="inl">dig</code> на ноде подтверждает только работу самого AGH. Дошла ли фильтрация до клиентов — вопрос отдельный, особенно с Xray, где путь идёт через системный резолвер ноды.</p>
-    <p>Подключитесь к ноде как обычный пользователь и откройте <a href="https://adblock.turtlecute.org" style="color:var(--origin)">adblock.turtlecute.org</a> — страница прогоняет запросы к известным рекламным и трекерным доменам и показывает, сколько из них заблокировано.</p>
-    <div class="note warn">
-      <span class="note-label">Проверяйте с чистого устройства</span>
-      <p>Только эта проверка охватывает цепочку целиком: клиент → туннель → резолвер ноды → AGH → фильтры. Но локальный блокировщик в браузере или свой DNS на устройстве дадут ложноположительный результат — и нода будет выглядеть рабочей, не будучи ею.</p>
-      <p>Надёжнее смотреть журнал запросов в панели AGH: там видно, доходят ли до него домены, которые запрашивают клиенты, или только ваши собственные проверки.</p>
-    </div>
-  </section>
-
-  <hr class="rule">
-
-  <section class="part origin-part">
-    <div class="part-head">
-      <h2>Часть C · Автообнаружение реплик</h2>
-      <span class="part-note">то, ради чего всё затевалось</span>
-    </div>
-
-    <p>Список из тридцати реплик в <code class="inl">sync.yaml</code> руками не поддерживают. Генератор строит его по группе в оверлее и перезапускает синхронизатор, только если состав действительно изменился.</p>
-
-    <p>График — часовой: правила меняются редко, гонять чаще смысла нет. Когда ждать не хочется, есть ручной прогон, который пересобирает список и запускает синхронизацию сразу:</p>
-
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>/opt/agh-sync/sync-now.sh</pre>
-    </div>
-
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">/opt/agh-sync/gen-sync.sh</span></div>
-<pre>#!/usr/bin/env bash
-set -euo pipefail
-
-PASS="$(cat /opt/agh-sync/admin.pass)"
-OUT=/opt/agh-sync/sync.yaml
-
-{
-  printf 'cron: "17 * * * *"\nrunOnStart: true\ncontinueOnError: true\n\n'
-  printf 'origin:\n  url: http://127.0.0.1:3000\n'
-  printf '  username: admin\n  password: %s\n\nreplicas:\n' "$PASS"
-
-  # Адреса, а не имена: у netbird отключено управление DNS, иначе его
-  # резолвер занимает порт 53, нужный AdGuard Home.
-  netbird status --json \
-    | jq -r '.peers.details[]
-             | select(.groups[]? == "agh-replica")
-             | (.netbirdIp // .ip // empty) | split("/")[0]' \
-    | sort -u \
-    | while read -r addr; do
-        printf '  - url: http://%s:3000\n' "$addr"
-        printf '    username: admin\n    password: %s\n' "$PASS"
-      done
-
-  printf '\nfeatures:\n  dhcp:\n    serverConfig: false\n    staticLeases: false\n'
-} &gt; "$OUT.new"
-
-if cmp -s "$OUT.new" "$OUT"; then
-  rm "$OUT.new"
-else
-  mv "$OUT.new" "$OUT"
-  docker restart agh-sync
-fi</pre>
-    </div>
-
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>echo '5 * * * * root /opt/agh-sync/gen-sync.sh' \
-  | sudo tee /etc/cron.d/agh-sync-gen</pre>
-    </div>
-
-    <div class="note warn">
-      <span class="note-label">Сверьте структуру JSON</span>
-      <p>Имена полей в выводе <code class="inl">netbird status --json</code> менялись между версиями. Перед первым запуском посмотрите фактический вывод и поправьте jq-выражение. Для продакшена надёжнее ходить в Management API (<code class="inl">GET /api/peers</code> с токеном) — там контракт стабильнее, чем у CLI.</p>
-    </div>
-
-    <p>Офлайн-ноды из списка намеренно не исключаются: <code class="inl">continueOnError</code> позволяет синхронизатору пропустить недоступную реплику и обновить остальные, а вернувшаяся нода догонится сама. Отфильтруй мы их по статусу — пришлось бы ждать следующей пересборки списка.</p>
-
-    <h3>Отключение ноды</h3>
-    <p>Удалите пир в консоли Netbird. В течение часа он исчезнет из <code class="inl">sync.yaml</code>, синхронизатор перезапустится с новым составом. Ничего чистить руками не нужно.</p>
-  </section>
-
-  <hr class="rule">
-
   <section class="part">
     <div class="part-head">
-      <h2>Часть D · Клиенты</h2>
-      <span class="part-note">адрес шлюза своей ноды</span>
+      <h2>Безопасность выходной ноды</h2>
+      <span class="part-note">правится в конфиге Xray</span>
     </div>
 
-    <p>Каждому клиенту прописывается DNS того сервера, к которому он подключается. Никаких вторых и запасных DNS: Windows и Android опрашивают перечисленные серверы параллельно, и фильтрация потечёт постоянно, а не только при аварии.</p>
+    <p>Клиент, подключённый к ноде, выходит в интернет с её адреса — а значит может обратиться и к её внутренним сервисам. Firewall тут не помощник: запросы приходят изнутри.</p>
 
-    <h3>WireGuard</h3>
-    <p>Push-механизма нет, адрес подставляется при генерации клиентского конфига:</p>
+    <p>Закрывается на стороне Xray. В <code class="inl">routing.rules</code> первым правилом:</p>
+
     <div class="code">
-      <div class="code-bar"><span>ini</span><span class="where">клиент ноды node07</span></div>
-<pre>[Interface]
-PrivateKey = ...
-Address = 10.107.0.5/32
-DNS = 10.107.0.1</pre>
+      <div class="code-bar"><span>json</span><span class="where">шаблон конфига в Remnawave</span></div>
+<pre>{
+  "type": "field",
+  "ip": ["geoip:private"],
+  "outboundTag": "block"
+}</pre>
     </div>
 
-    <h3>OpenVPN</h3>
+    <p>Это отсекает клиентам не только панель AGH, но и всё внутреннее на ноде — Docker-сети, оверлей, метрики, сам <code class="inl">remnanode</code>.</p>
+
+    <h3>Проверка с подключённого клиента</h3>
     <div class="code">
-      <div class="code-bar"><span>conf</span><span class="where">серверный конфиг node07</span></div>
-<pre>push "dhcp-option DNS 10.107.0.1"
-push "block-outside-dns"</pre>
+      <div class="code-bar"><span>bash</span><span class="where">клиент в VPN</span></div>
+<pre>curl -m 5 -o /dev/null -w "публичный: %{http_code}\n" http://ПУБЛИЧНЫЙ_IP:3000/
+curl -m 5 -o /dev/null -w "оверлей:   %{http_code}\n" http://100.x.x.x:3000/
+curl -m 5 -o /dev/null -w "localhost: %{http_code}\n" http://127.0.0.1:3000/</pre>
     </div>
-    <p><code class="inl">block-outside-dns</code> нужен Windows-клиентам: без него система продолжит спрашивать DNS физического интерфейса в обход туннеля.</p>
-  </section>
+    <p>Все три должны дать таймаут или <code class="inl">000</code>. Любой <code class="inl">200</code> или <code class="inl">302</code> означает, что панель достижима.</p>
 
-  <hr class="rule">
-
-  <section class="part">
-    <div class="part-head">
-      <h2>Часть E · Эксплуатация</h2>
-    </div>
-
-    <h3>Обновление парка</h3>
-    <p>Тег <code class="inl">latest</code> означает, что момент обновления выбираете вы. Прогоняйте все ноды в одном окне, чтобы версии не разъезжались дольше пары минут:</p>
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">рабочая машина</span></div>
-<pre>./scripts/fleet-update.sh node02 node03 node07
-./scripts/fleet-update.sh          # или все хосты из NODES в .env</pre>
-    </div>
-    <div class="note">
-      <span class="note-label">Почему не с origin</span>
-      <p>Обновление намеренно запускается с рабочей машины. Держать на origin ssh-доступ ко всему парку означало бы, что компрометация одной ноды открывает остальные — а рабочая машина доступ к нодам и так имеет. Побочный выигрыш: в политике Netbird достаточно одного порта 3000, SSH внутри оверлея открывать не нужно.</p>
-    </div>
-
-    <h3>Точка отката</h3>
-    <p><code class="inl">latest</code> сам по себе вернуться назад не даёт, поэтому перед обновлением фиксируем образ:</p>
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">любая нода</span></div>
-<pre>docker inspect --format '{{index .RepoDigests 0}}' adguardhome</pre>
-    </div>
-    <p>Полученный <code class="inl">adguard/adguardhome@sha256:…</code> подставляется вместо тега в compose, если релиз окажется неудачным.</p>
-
-    <h3>Бэкап</h3>
-    <p>Реальная конфигурация существует в одном экземпляре — на origin. Тридцать реплик восстанавливаются из неё одним прогоном синхронизации, поэтому бэкапить достаточно её и шаблон:</p>
-    <div class="code">
-      <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>tar czf agh-$(date +%F).tar.gz \
-  -C /opt/adguardhome conf AdGuardHome.yaml.tmpl</pre>
-    </div>
-
-    <h3>Если реплика отстала</h3>
-    <ul class="plain">
-      <li><code class="inl">docker logs agh-sync</code> на origin — видно, какая нода не ответила и почему;</li>
-      <li>проверьте, что нода вообще в списке: <code class="inl">grep node07 /opt/agh-sync/sync.yaml</code>;</li>
-      <li>проверьте доступность панели по оверлею: <code class="inl">curl -su admin:ПАРОЛЬ http://node07:3000/control/status</code>;</li>
-      <li>убедитесь, что версии AGH не разъехались далеко — в пределах патчей это безопасно, на смене минорной версии API может измениться.</li>
-    </ul>
-
-    <div class="note">
-      <span class="note-label">Чего у этой схемы нет</span>
-      <p>Сводной статистики и единого лога запросов: и то, и другое остаётся на каждой ноде своим. Это прямая плата за отсутствие единой точки отказа — падение любой ноды задевает только её собственных клиентов, у которых в этот момент всё равно нет туннеля. Если сводная картина нужна, снимайте метрики отдельно: у AGH есть API статистики, данные с тридцати нод собираются в Prometheus или ClickHouse.</p>
-    </div>
+    <details>
+      <summary>Что означает каждый из трёх адресов</summary>
+      <div class="details-body">
+        <p><strong>Публичный IP ответил</strong> — правило firewall не применилось, смотрите <code class="inl">iptables -L ADH-INPUT -n -v</code>.</p>
+        <p><strong>Оверлейный адрес ответил</strong> — ваш клиент вышел через ноду, которой Netbird разрешает достучаться до целевой. По политике <code class="inl">agh-origin → agh-replica</code> такое возможно, если выходная нода origin. Netbird отработал правильно, дыра не в нём.</p>
+        <p><strong><code class="inl">127.0.0.1</code> ответил</strong> — самый неочевидный случай. При настройке клиента через SOCKS или HTTP-прокси браузер отдаёт адрес прокси как есть, и Xray подключается к <code class="inl">127.0.0.1:3000</code> на самой ноде. С её точки зрения это обычное локальное соединение, которое firewall обязан разрешать — оно нужно синхронизатору и вашему ssh-туннелю. Поэтому закрывать надо именно правилом Xray.</p>
+      </div>
+    </details>
   </section>
 
   <hr class="rule">
@@ -1029,12 +756,33 @@ push "block-outside-dns"</pre>
       <span class="part-note">всё, обо что споткнулись при развёртывании</span>
     </div>
 
-    <p>Каждый случай ниже объединяет одно свойство: нода выглядит исправной. Ошибки не возникает, команды отрабатывают, контейнеры поднимаются — а схема не работает. Поэтому здесь не только лечение, но и признак, по которому случай опознаётся.</p>
+    <p>Случаи ниже объединяет одно свойство: <strong>нода выглядит исправной</strong>. Ошибки нет, команды отрабатывают, контейнеры поднимаются — а схема не работает. Поэтому у каждого указан признак, по которому он опознаётся.</p>
+
+    <details>
+      <summary>Клиенты не фильтруются, в журнале AGH только ваши проверки</summary>
+      <div class="details-body">
+        <p>Отвалилась одна из двух половин. Какая именно — покажет захват трафика при подключённом клиенте:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
+<pre>apt-get install -y tcpdump
+timeout 25 tcpdump -ni any 'port 53 or port 853' -c 40</pre>
+        </div>
+        <ul class="plain">
+          <li>запросы на <code class="inl">127.0.0.1.53</code> — всё правильно;</li>
+          <li>запросы с публичного адреса ноды на <code class="inl">8.8.8.8</code>, <code class="inl">1.1.1.1</code> или порт <code class="inl">853</code> — в конфиге Xray осталась секция <code class="inl">dns</code>. Соединения на 853-й доказывают это сами: DoT умеет только встроенный резолвер Xray, системный — нет.</li>
+        </ul>
+        <p>И проверьте резолвер ноды: <code class="inl">cat /etc/resolv.conf</code> должен показать <code class="inl">nameserver 127.0.0.1</code> в обычном файле, а не символьную ссылку — пока это ссылка, systemd-resolved перезапишет содержимое.</p>
+        <div class="note warn">
+          <span class="note-label">Не проверяйте личным устройством</span>
+          <p>Локальный блокировщик в браузере или свой DNS дадут ложноположительный результат, и нода будет выглядеть рабочей, не будучи ею. Надёжный признак — журнал запросов в панели AGH: там должны появляться домены, которые запрашивают клиенты.</p>
+        </div>
+      </div>
+    </details>
 
     <details>
       <summary>На ноде уже был установлен Netbird</summary>
       <div class="details-body">
-        <p>Установщик отказывается работать на запущенной службе, пишет «NetBird service is running» и <strong>выходит с кодом успеха</strong>, оставляя старый бинарь. А <code class="inl">netbird up</code> на подключённом агенте отвечает «Already connected» и не применяет ни ключ, ни флаги. Вдвоём это даёт ноду со старой конфигурацией — иногда в чужой сети.</p>
+        <p>Установщик отказывается работать на запущенной службе, пишет «NetBird service is running» и <strong>выходит с кодом успеха</strong>, оставляя старый бинарь. А <code class="inl">netbird up</code> на подключённом агенте отвечает «Already connected» и не применяет ни ключ, ни флаги.</p>
         <p><strong>Признаки:</strong> порт 53 занят самим агентом; FQDN оканчивается незнакомым доменом; <code class="inl">Peers count: 0/0</code> при живых нодах.</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
@@ -1049,53 +797,26 @@ netbird up --management-url https://api.netbird.io:443 \
   --setup-key &lt;КЛЮЧ&gt; --hostname HK01 \
   --disable-dns --dns-resolver-address 127.0.0.1:5053</pre>
         </div>
-        <p>Удаляется <strong>весь</strong> каталог состояния, а не только <code class="inl">config.json</code>: в 0.78 у агента появились профили, и конфигурация может лежать в другом месте. <code class="inl">install.sh</code> делает это сам.</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Порт 53 занят, AGH не поднимается</summary>
-      <div class="details-body">
-        <p>Виновника два. Смотрим, кто именно:</p>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
-<pre>ss -ulnp | grep ':53 '</pre>
-        </div>
-        <p><strong>systemd-resolved.</strong> Отключаем stub-listener и переводим <code class="inl">resolv.conf</code> на реальные апстримы. Третья строка обязательна: без неё файл продолжает указывать на <code class="inl">127.0.0.53</code>, который больше не слушает, и нода остаётся без резолвинга — перестают работать <code class="inl">apt</code>, <code class="inl">docker pull</code> и сам AGH.</p>
-        <div class="code">
-          <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
-<pre>sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
-systemctl restart systemd-resolved
-ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf</pre>
-        </div>
-        <p><strong>netbird.</strong> Его локальный резолвер садится на 53-й порт. Одного <code class="inl">--disable-dns</code> мало: он лишь запрещает агенту править настройки DNS системы, а слушатель всё равно поднимается. Уводит его только <code class="inl">--dns-resolver-address</code>.</p>
+        <p>Удаляется <strong>весь</strong> каталог состояния: в 0.78 у агента появились профили, и конфигурация может лежать не в <code class="inl">config.json</code>. <code class="inl">install.sh</code> делает это сам.</p>
       </div>
     </details>
 
     <details>
       <summary>Синхронизатор пишет 401 Unauthorized</summary>
       <div class="details-body">
-        <p>Учётки разошлись: на реплике лежит хеш не от того пароля, что в <code class="inl">admin.pass</code> на origin. Сравните напрямую, на обеих нодах:</p>
+        <p>Учётки разошлись: на реплике хеш не от того пароля, что в <code class="inl">admin.pass</code>. Сравните на обеих нодах:</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">origin и реплика</span></div>
 <pre>grep -A2 '^users:' /opt/adguardhome/conf/AdGuardHome.yaml</pre>
         </div>
-        <p>Причины: реплику ставили с неверным <code class="inl">AGH_PASS_HASH</code> — теперь <code class="inl">install.sh</code> такое отклоняет — либо пароль на origin меняли после снятия шаблона.</p>
+        <p>Починка на реплике — кавычки одинарные, в хеше есть <code class="inl">$</code>:</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">реплика</span></div>
 <pre>sed -i 's|^    password: .*|    password: ХЕШ_С_ORIGIN|' \
   /opt/adguardhome/conf/AdGuardHome.yaml
 docker restart adguardhome</pre>
         </div>
-        <p>Кавычки одинарные: в хеше есть <code class="inl">$</code>.</p>
-      </div>
-    </details>
-
-    <details>
-      <summary>Смена пароля админа — операция на весь парк</summary>
-      <div class="details-body">
-        <p>Синхронизатор сам её не разнесёт: чтобы разослать новый пароль, ему нужно сначала авторизоваться старым.</p>
-        <p>Порядок: сменить пароль на origin → переснять шаблон через <code class="inl">make-template.sh</code> → обновить <code class="inl">AGH_PASS_HASH</code> в <code class="inl">.env</code> и шаблон в репозитории → обновить <code class="inl">admin.pass</code> на origin → поправить хеш на каждой уже стоящей реплике.</p>
+        <p><strong>Смена пароля админа — операция на весь парк.</strong> Синхронизатор сам её не разнесёт: чтобы разослать новый пароль, ему нужно авторизоваться старым. Порядок: сменить на origin → переснять шаблон → обновить <code class="inl">.env</code> и репозиторий → обновить <code class="inl">admin.pass</code> → поправить хеш на каждой реплике.</p>
       </div>
     </details>
 
@@ -1107,15 +828,27 @@ docker restart adguardhome</pre>
 <pre>netbird status | grep -i 'peers count'
 /opt/agh-sync/gen-sync.sh</pre>
         </div>
-        <p>Ноль пиров — реплики не подключены к оверлею либо ушли в другой аккаунт; сверьте management-сервер на обеих нодах. Пиры есть, а список пуст — генератор печатает источник отбора, по нему и смотрите.</p>
-        <p>Отбор по группе <code class="inl">agh-replica</code> работает, только если CLI netbird отдаёт членство в группах. На 0.78.2 он его не отдаёт, поэтому генератор переходит к запасному способу и берёт всех пиров оверлея. Это корректно, пока в аккаунте только ноды AGH.</p>
+        <p>Ноль пиров — реплики не подключены к оверлею либо ушли в другой аккаунт. Пиры есть, а список пуст — генератор печатает источник отбора, смотрите по нему.</p>
+        <p>Отбор по группе работает, только если CLI netbird отдаёт членство в группах. На 0.78.2 он его не отдаёт, поэтому генератор берёт всех пиров оверлея. Это корректно, пока в аккаунте только ноды AGH.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Порт 53 занят, AGH не поднимается</summary>
+      <div class="details-body">
+        <p>Виновника два — <code class="inl">systemd-resolved</code> и резолвер netbird. Смотрим, кто именно:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
+<pre>ss -ulnp | grep ':53 '</pre>
+        </div>
+        <p>Лечение обоих случаев — в шаге 2 раздела про origin.</p>
       </div>
     </details>
 
     <details>
       <summary>systemd пишет «Unit file is masked»</summary>
       <div class="details-body">
-        <p>Возникает, если писать загруженное через <code class="inl">tee</code>: при неудачном <code class="inl">curl</code> файл всё равно создаётся, только пустым. Юнит нулевой длины systemd считает замаскированным, и сообщение никак не указывает на исходную причину.</p>
+        <p>Файл юнита пустой — <code class="inl">curl</code> не скачал, а <code class="inl">tee</code> всё равно создал.</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
 <pre>rm -f /etc/systemd/system/adh-firewall.service /usr/local/sbin/adh-firewall.sh
@@ -1129,7 +862,7 @@ systemctl daemon-reload</pre>
       <summary>Контейнер agh-sync печатает справку вместо работы</summary>
       <div class="details-body">
         <p>Конфиг невалиден или недоступен — настоящая причина в последней строке вывода. Если там <code class="inl">permission denied</code> на <code class="inl">/config/sync.yaml</code>, контейнер работает не от root и не может прочитать файл с правами 600. В compose должно быть <code class="inl">user: "0:0"</code>.</p>
-        <p>Ослаблять права файла нельзя: в нём лежит пароль админа всего парка.</p>
+        <p>Ослаблять права файла нельзя: в нём пароль админа всего парка.</p>
       </div>
     </details>
   </section>
@@ -1143,31 +876,26 @@ systemctl daemon-reload</pre>
     </div>
 
     <ul class="checklist" id="cl">
-      <li><label><input type="checkbox" id="k1"><span>Истечение пиров и setup key отключено — флот не отвалится через месяц</span></label></li>
-      <li><label><input type="checkbox" id="k2"><span>Политика сужена до <code class="inl">agh-origin → agh-replica</code>, tcp/3000 — не <code class="inl">ALL/ALL</code></span></label></li>
-      <li><label><input type="checkbox" id="k2b"><span>На странице Access Control не осталось правила <code class="inl">All → All</code></span></label></li>
-      <li><label><input type="checkbox" id="k3"><span>На нодах <code class="inl">resolvectl status</code> не показывает вмешательства агента оверлея в DNS</span></label></li>
-      <li><label><input type="checkbox" id="k4"><span><code class="inl">ss -ulnp | grep :53</code> показывает AdGuard Home, а не systemd-resolved</span></label></li>
-      <li><label><input type="checkbox" id="k4b"><span><code class="inl">getent hosts github.com</code> на ноде отвечает — resolv.conf не оставлен на мёртвом 127.0.0.53</span></label></li>
-      <li><label><input type="checkbox" id="k5"><span>С хоста вне оверлея <code class="inl">dig @публичный_IP example.com</code> не отвечает ни на одной ноде</span></label></li>
-      <li><label><input type="checkbox" id="k6"><span>Новая нода поднимается одной командой и мастер установки не показывает</span></label></li>
-      <li><label><input type="checkbox" id="k6b"><span><code class="inl">sync-now.sh</code> на origin прогоняет синхронизацию немедленно</span></label></li>
-      <li><label><input type="checkbox" id="k7"><span>Тестовая нода появилась в <code class="inl">sync.yaml</code> сама, без правок на origin</span></label></li>
-      <li><label><input type="checkbox" id="k8"><span>Заблокированный домен режется на выборочных нодах из разных концов списка</span></label></li>
-      <li><label><input type="checkbox" id="k8b"><span>В конфиге Xray нет секции <code class="inl">dns</code>, а <code class="inl">/etc/resolv.conf</code> — обычный файл с <code class="inl">127.0.0.1</code></span></label></li>
-      <li><label><input type="checkbox" id="k8c"><span>В журнале запросов AGH видны клиентские домены, а не только собственные проверки</span></label></li>
-      <li><label><input type="checkbox" id="k9"><span>В клиентских конфигах прописан DNS своей ноды и только один</span></label></li>
-      <li><label><input type="checkbox" id="k10"><span>Сделан бэкап <code class="inl">conf</code> и шаблона с origin-ноды</span></label></li>
+      <li><label><input type="checkbox" id="n1"><span>Истечение пиров в Netbird отключено — иначе флот отвалится через месяц</span></label></li>
+      <li><label><input type="checkbox" id="n2"><span>Политика сужена до <code class="inl">agh-origin → agh-replica</code> tcp/3000, правила <code class="inl">All → All</code> нет</span></label></li>
+      <li><label><input type="checkbox" id="n3"><span>В конфиге Xray нет секции <code class="inl">dns</code>, есть правило блокировки <code class="inl">geoip:private</code></span></label></li>
+      <li><label><input type="checkbox" id="n4"><span><code class="inl">/etc/resolv.conf</code> — обычный файл с <code class="inl">127.0.0.1</code>, не символьная ссылка</span></label></li>
+      <li><label><input type="checkbox" id="n5"><span>В журнале запросов AGH видны клиентские домены, а не только собственные проверки</span></label></li>
+      <li><label><input type="checkbox" id="n6"><span>С подключённого клиента панель недоступна по всем трём адресам</span></label></li>
+      <li><label><input type="checkbox" id="n7"><span>С хоста вне оверлея <code class="inl">dig @публичный_IP</code> не отвечает</span></label></li>
+      <li><label><input type="checkbox" id="n8"><span>Нода пережила перезагрузку: правила iptables вернулись, контейнеры поднялись</span></label></li>
+      <li><label><input type="checkbox" id="n9"><span>Новая нода появилась в <code class="inl">sync.yaml</code> сама, без правок на origin</span></label></li>
+      <li><label><input type="checkbox" id="n10"><span>Сделан бэкап <code class="inl">/opt/adguardhome/conf</code> с origin</span></label></li>
     </ul>
 
-    <p class="foot">Пункт 5 проверяется только снаружи оверлея. Пункт 7 — главный: если он выполняется, тридцать первая нода не будет стоить вам ничего.</p>
+    <p class="foot">Пункт 9 — главный: если он выполняется, тридцать первая нода не будет стоить вам ничего.</p>
   </section>
 
 </div>
 
 <script>
   (function () {
-    var KEY = 'agh-runbook-checks-v2';
+    var KEY = 'agh-runbook-checks-v3';
     var boxes = document.querySelectorAll('#cl input[type=checkbox]');
     var saved = {};
     try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { saved = {}; }
