@@ -50,14 +50,30 @@ command -v jq >/dev/null || { apt-get update -qq && apt-get install -y -qq jq cu
 # старый бинарь.
 systemctl stop netbird 2>/dev/null || true
 curl -fsSL https://pkgs.netbird.io/install.sh | sh
+
+# Состояние старой установки удаляется целиком. В 0.78 у агента появились
+# профили, и конфигурация может лежать не только в /etc/netbird/config.json —
+# остатки уводят ноду в чужую сеть, что по выводу команд не видно.
+if [[ "${NB_KEEP_STATE:-}" != "1" ]]; then
+  systemctl stop netbird 2>/dev/null || true
+  rm -rf /etc/netbird /var/lib/netbird
+fi
+
 systemctl start netbird 2>/dev/null || true
 sleep 2
 
 NB_RESOLVER="${NB_RESOLVER:-127.0.0.1:5053}"
 
+# Management URL задаётся ЯВНО. Без него агент берёт адрес из унаследованного
+# состояния, и заметить это невозможно: он пишет «Connected» и получает адрес,
+# просто в чужой сети. В консоли при этом пусто, а ноды не видят друг друга.
+# Для self-hosted Netbird переопределите NB_MGMT.
+NB_MGMT="${NB_MGMT:-https://api.netbird.io:443}"
+
 nb_connect() {
   netbird down >/dev/null 2>&1 || true
-  netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" \
+  netbird up --management-url "$NB_MGMT" \
+    --setup-key "$NB_KEY" --hostname "$(hostname -s)" \
     --disable-dns --dns-resolver-address "$NB_RESOLVER"
 }
 
@@ -87,7 +103,22 @@ if ss -ulnp 2>/dev/null | grep ':53 ' | grep -q netbird; then
 fi
 
 [[ -n "$NB_IP" ]] || { echo "нода не получила адрес в оверлее" >&2; exit 1; }
-echo "оверлей: $NB_IP"
+
+# Сверяем, к тому ли серверу подключились. Агент пишет «Connected» и выдаёт
+# адрес даже когда ушёл в чужую сеть — без этой проверки нода выглядит
+# установленной, но origin её никогда не увидит.
+NB_MGMT_ACTUAL="$(netbird status -d 2>/dev/null | awk '/^Management:/ {print $NF}')"
+case "$NB_MGMT_ACTUAL" in
+  *"${NB_MGMT#https://}"*|*api.netbird.io*) : ;;
+  *)
+    echo "нода подключена не к тому management-серверу:" >&2
+    echo "  ожидался: $NB_MGMT" >&2
+    echo "  фактически: ${NB_MGMT_ACTUAL:-не определён}" >&2
+    exit 1
+    ;;
+esac
+
+echo "оверлей: $NB_IP ($(netbird status -d 2>/dev/null | awk '/^FQDN:/ {print $2}'))"
 
 if ss -ulnp 2>/dev/null | grep ':53 ' | grep -q netbird; then
   echo "резолвер netbird всё ещё на порту 53 — дальше идти нельзя." >&2

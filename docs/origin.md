@@ -73,18 +73,35 @@ ss -ulnp | grep ':53 ' || echo "порт 53 свободен"
 ss -ulnp | grep ':53 '
 ```
 
-Лечится полной переустановкой со сбросом конфигурации:
+Лечится полной переустановкой со сбросом состояния:
 
 ```bash
 systemctl stop netbird
 curl -fsSL https://pkgs.netbird.io/install.sh | sh
-netbird version
-systemctl stop netbird && rm -f /etc/netbird/config.json && systemctl start netbird
-netbird up --setup-key "$NB_KEY_ORIGIN" --hostname node01 --disable-dns
+systemctl stop netbird && rm -rf /etc/netbird /var/lib/netbird && systemctl start netbird
+netbird up --management-url https://api.netbird.io:443 \
+  --setup-key "$NB_KEY_ORIGIN" --hostname node01 \
+  --disable-dns --dns-resolver-address 127.0.0.1:5053
 ```
 
-Старый пир после этого останется в консоли Netbird отдельной записью —
-удалите его. `install.sh` на репликах делает всё это сам.
+Удаляется **весь** каталог состояния, а не только `config.json`: в 0.78
+у агента появились профили, и конфигурация может лежать в другом месте.
+
+`--management-url` указывается **явно**. Без него агент берёт адрес
+из унаследованного состояния, и по выводу этого не понять: он пишет
+«Connected» и получает адрес — просто в чужой сети. Симптомы выглядят
+совершенно иначе: в консоли пусто, `Peers count: 0/0`, ноды не видят
+друг друга, а FQDN оканчивается незнакомым доменом вместо `netbird.cloud`.
+
+Проверка, к тому ли серверу подключились:
+
+```bash
+netbird status -d | grep -iE 'management|fqdn'
+```
+
+Старый пир останется в консоли отдельной записью — удалите его.
+`install.sh` на репликах делает всё это сам, включая сверку
+management-сервера после подключения.
 
 ```bash
 sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
