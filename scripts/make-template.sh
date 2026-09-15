@@ -26,7 +26,18 @@ NB_IP="$(netbird status --json | jq -r '.netbirdIp // empty' | cut -d/ -f1)"
 HASH="$(grep -oE '\$2[aby]\$[0-9]{2}\$[A-Za-z0-9./]{53}' "$CONF" | head -1)"
 [[ -n "$HASH" ]] || { echo "не нашёл bcrypt-хеш пароля в $CONF" >&2; exit 1; }
 
-sed -e "s|${HASH//\//\\/}|__PASS_HASH__|g" "$CONF" > "$OUT"
+# Списки фильтров и пользовательские правила из шаблона вырезаются.
+#
+# Во-первых, они там не нужны: на реплики всё это приезжает синхронизацией
+# с origin, шаблону достаточно поднять AGH с правильными адресами и паролем.
+# Во-вторых, репозиторий публичный, а user_rules — личный список исключений,
+# по которому видно, какими сервисами вы пользуетесь.
+sed -e "s|${HASH//\//\\/}|__PASS_HASH__|g" "$CONF" \
+  | awk '
+      /^(filters|whitelist_filters|user_rules):/ { skip = 1; print $1 " []"; next }
+      skip && /^[a-zA-Z_]+:/                    { skip = 0 }
+      !skip                                     { print }
+    ' > "$OUT"
 
 grep -q '__PASS_HASH__' "$OUT" || { echo "плейсхолдер __PASS_HASH__ не подставился" >&2; exit 1; }
 
@@ -46,7 +57,12 @@ if grep -qE '\$2[aby]\$[0-9]{2}\$' "$OUT"; then
   exit 1
 fi
 
+for k in filters whitelist_filters user_rules; do
+  grep -qE "^${k}: \[\]" "$OUT" || { echo "не удалось вырезать блок $k" >&2; exit 1; }
+done
+
 echo "шаблон готов: $OUT"
+echo "фильтры и user_rules вырезаны — они приедут на реплики синхронизацией"
 echo "секретов не содержит, коммитьте в node/AdGuardHome.yaml.tmpl"
 echo
 echo "хеш пароля для установки нод (AGH_PASS_HASH):"
