@@ -56,8 +56,22 @@ fi
 # --- 3. конфиг из шаблона ---------------------------------------------------
 # Готовый AdGuardHome.yaml на месте => мастер установки не запускается.
 install -d "$APP_DIR/conf" "$APP_DIR/work"
-curl -fsSL "$REPO/node/docker-compose.yml"    -o "$APP_DIR/docker-compose.yml"
-curl -fsSL "$REPO/node/AdGuardHome.yaml.tmpl" -o "$APP_DIR/AdGuardHome.yaml.tmpl"
+curl -fsSL "$REPO/node/docker-compose.yml" -o "$APP_DIR/docker-compose.yml"
+
+if ! curl -fsSL "$REPO/node/AdGuardHome.yaml.tmpl" -o "$APP_DIR/AdGuardHome.yaml.tmpl"; then
+  cat >&2 <<'MSG'
+
+Шаблон конфига не скачался.
+
+Причина почти наверняка одна из двух:
+  1. origin-нода ещё не настроена и шаблон не закоммичен в репозиторий.
+     Пройдите docs/origin.md, шаг 5 — make-template.sh напечатает
+     AGH_PASS_HASH и отдаст node/AdGuardHome.yaml.tmpl.
+  2. репозиторий приватный, и curl получил 404 вместо файла.
+
+MSG
+  exit 1
+fi
 
 umask 077
 sed -e "s|__VPN_GW__|$VPN_GW|g" \
