@@ -320,6 +320,32 @@ AGH_PASS='ПАРОЛЬ' sudo -E bash <(curl -fsSL https://raw.githubusercontent.
 tar czf agh-$(date +%F).tar.gz -C /opt/adguardhome conf
 ```
 
+**`401 Unauthorized` от реплики.** Учётки разошлись: на реплике лежит хеш
+не от того пароля, что в `admin.pass`. Сравните напрямую — на обеих нодах:
+
+```bash
+grep -A2 '^users:' /opt/adguardhome/conf/AdGuardHome.yaml
+```
+
+Типичные причины: реплику ставили с пустым или неверным `AGH_PASS_HASH`
+(сейчас `install.sh` такое отклоняет), либо пароль на origin меняли после
+снятия шаблона. Починка на реплике — подставить хеш с origin и перезапустить:
+
+```bash
+sed -i 's|^    password: .*|    password: ХЕШ_С_ORIGIN|' \
+  /opt/adguardhome/conf/AdGuardHome.yaml
+docker restart adguardhome
+```
+
+Кавычки одинарные: в хеше есть `$`.
+
+**Смена пароля админа — операция на весь парк.** Синхронизатор сам её
+не разнесёт: чтобы разослать новый пароль, ему нужно сначала авторизоваться
+старым. Порядок такой: сменить пароль на origin → переснять шаблон
+(`make-template.sh`) → обновить `AGH_PASS_HASH` в `.env` и шаблон
+в репозитории → обновить `admin.pass` на origin → поправить хеш
+на каждой уже стоящей реплике.
+
 **Если реплика отстала:**
 
 ```bash
