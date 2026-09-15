@@ -23,7 +23,16 @@ CONF=/etc/adh-firewall.conf
 . "$CONF"
 : "${CLIENT_NET:?в $CONF не задан CLIENT_NET}"
 
-OVERLAY_NET=${OVERLAY_NET:-100.64.0.0/10}
+# Панель разрешаем по ИНТЕРФЕЙСУ оверлея, а не по диапазону адресов.
+#
+# Netbird раздаёт адреса шире, чем 100.64.0.0/10: в одном парке встречаются
+# и 100.72.x.x, и 100.28.x.x. Правило по сети отбросило бы половину нод,
+# причём выглядело бы это как «реплика не отвечает», а не как отказ firewall.
+# Совпадение по интерфейсу от пула адресов не зависит вовсе.
+#
+# Несуществующий на момент применения интерфейс iptables принимает спокойно —
+# правило просто не будет срабатывать, пока netbird не поднимет wt0.
+OVERLAY_IF=${OVERLAY_IF:-wt0}
 
 apply() {
   local ipt="$1"; shift
@@ -54,9 +63,10 @@ apply() {
     # DNS — только клиентам этой ноды
     "$ipt" -A "$CHAIN" -p udp --dport 53 -s "$CLIENT_NET" -j ACCEPT
     "$ipt" -A "$CHAIN" -p tcp --dport 53 -s "$CLIENT_NET" -j ACCEPT
-    # Панель — только из оверлея, там ходит синхронизатор
-    "$ipt" -A "$CHAIN" -p tcp --dport 3000 -s "$OVERLAY_NET" -j ACCEPT
   fi
+
+  # Панель — только с интерфейса оверлея, там ходит синхронизатор
+  "$ipt" -A "$CHAIN" -p tcp --dport 3000 -i "$OVERLAY_IF" -j ACCEPT
 
   # Всё остальное на этих портах — молча отбрасываем
   "$ipt" -A "$CHAIN" -p udp --dport 53   -j DROP
@@ -70,4 +80,4 @@ apply iptables  127.0.0.0/8 yes
 # резолвером по IPv6, что легко упустить.
 apply ip6tables ::1/128     no
 
-echo "firewall: 53 открыт для $CLIENT_NET, 3000 — для $OVERLAY_NET"
+echo "firewall: 53 открыт для $CLIENT_NET, 3000 — с интерфейса $OVERLAY_IF"
