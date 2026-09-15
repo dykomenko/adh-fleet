@@ -620,16 +620,23 @@ sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf</pre>
         <p>Ставится тем же скриптом, что и на репликах — чистый iptables, без ufw: на нодах его обычно нет, а тащить пакет ради трёх правил незачем.</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>echo 'CLIENT_NET=10.101.0.0/24' | sudo tee /etc/adh-firewall.conf
+<pre>RAW=https://raw.githubusercontent.com/dykomenko/adh-fleet/main
 
-curl -fsSL $REPO/node/adh-firewall.sh \
-  | sudo tee /usr/local/sbin/adh-firewall.sh &gt; /dev/null
-curl -fsSL $REPO/node/adh-firewall.service \
-  | sudo tee /etc/systemd/system/adh-firewall.service &gt; /dev/null
+echo 'CLIENT_NET=10.101.0.0/24' | sudo tee /etc/adh-firewall.conf
 
+sudo curl -fsSL "$RAW/node/adh-firewall.sh" \
+  -o /usr/local/sbin/adh-firewall.sh &amp;&amp; \
+sudo curl -fsSL "$RAW/node/adh-firewall.service" \
+  -o /etc/systemd/system/adh-firewall.service &amp;&amp; \
 sudo chmod 755 /usr/local/sbin/adh-firewall.sh
+
 sudo systemctl daemon-reload
 sudo systemctl enable --now adh-firewall.service</pre>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Не пишите файлы через tee без проверки</span>
+          <p>Если curl не скачал файл, <code class="inl">tee</code> всё равно создаст его пустым. Юнит нулевой длины systemd считает <strong>замаскированным</strong>, и <code class="inl">enable</code> падает с «Unit file is masked» — причина при этом выглядит совершенно не связанной с curl. Поэтому здесь <code class="inl">-o</code> и цепочка через <code class="inl">&amp;&amp;</code>.</p>
+          <p>Если уже поймали: <code class="inl">rm -f /etc/systemd/system/adh-firewall.service /usr/local/sbin/adh-firewall.sh &amp;&amp; systemctl daemon-reload</code>, затем повторите.</p>
         </div>
         <div class="note">
           <span class="note-label">Политика INPUT не меняется</span>
@@ -663,7 +670,8 @@ sudo systemctl enable --now adh-firewall.service</pre>
         <p>Писать его руками не надо — снимаем с работающей ноды, подставляя плейсхолдеры вместо адресов:</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>curl -fsSL "$REPO/scripts/make-template.sh" -o /tmp/mt.sh
+<pre>curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/scripts/make-template.sh \
+  -o /tmp/mt.sh
 sudo bash /tmp/mt.sh</pre>
         </div>
         <p>Так вы не гадаете про <code class="inl">schema_version</code> и формат полей текущей версии AGH. Скрипт заменяет плейсхолдерами адреса <strong>и bcrypt-хеш пароля</strong>, а сам хеш печатает — это <code class="inl">AGH_PASS_HASH</code> для установки нод, положите его в <code class="inl">.env</code>.</p>

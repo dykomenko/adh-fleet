@@ -130,6 +130,12 @@ curl -fsSL "$REPO/node/adh-firewall.sh"      -o /usr/local/sbin/adh-firewall.sh
 curl -fsSL "$REPO/node/adh-firewall.service" -o /etc/systemd/system/adh-firewall.service
 chmod 755 /usr/local/sbin/adh-firewall.sh
 
+# Пустой юнит systemd считает замаскированным, и enable упадёт с
+# «Unit file is masked» — причина при этом выглядит не связанной с загрузкой.
+for f in /usr/local/sbin/adh-firewall.sh /etc/systemd/system/adh-firewall.service; do
+  [[ -s "$f" ]] || { echo "файл $f пуст — загрузка не удалась" >&2; rm -f "$f"; exit 1; }
+done
+
 systemctl daemon-reload
 systemctl enable --now adh-firewall.service
 

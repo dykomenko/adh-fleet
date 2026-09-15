@@ -160,14 +160,28 @@ checking address 100.x.x.x:3000: bind: address already in use | 400
 Ставится тем же скриптом, что и на репликах:
 
 ```bash
+RAW=https://raw.githubusercontent.com/dykomenko/adh-fleet/main
+
 echo 'CLIENT_NET=10.101.0.0/24' | sudo tee /etc/adh-firewall.conf
-curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-firewall.sh \
-  | sudo tee /usr/local/sbin/adh-firewall.sh > /dev/null
-curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-firewall.service \
-  | sudo tee /etc/systemd/system/adh-firewall.service > /dev/null
+
+sudo curl -fsSL "$RAW/node/adh-firewall.sh" -o /usr/local/sbin/adh-firewall.sh && \
+sudo curl -fsSL "$RAW/node/adh-firewall.service" -o /etc/systemd/system/adh-firewall.service && \
 sudo chmod 755 /usr/local/sbin/adh-firewall.sh
+
 sudo systemctl daemon-reload
 sudo systemctl enable --now adh-firewall.service
+```
+
+**Не пишите эти файлы через `tee`.** Если curl не скачал файл, `tee` всё равно
+создаст его пустым, а юнит нулевой длины systemd считает **замаскированным** —
+`enable` падает с «Unit file is masked», и причина выглядит никак не связанной
+с загрузкой. Поэтому здесь `-o` и цепочка через `&&`.
+
+Если уже поймали:
+
+```bash
+sudo rm -f /etc/systemd/system/adh-firewall.service /usr/local/sbin/adh-firewall.sh
+sudo systemctl daemon-reload
 ```
 
 Чистый iptables, без ufw: на нодах его обычно нет, а тащить пакет ради
