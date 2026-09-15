@@ -523,8 +523,23 @@ netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 --disable-dns</pre>
         </div>
         <div class="note warn">
           <span class="note-label">Если агент уже стоял</span>
-          <p>Установщик откажется работать («NetBird service is running»), а <code class="inl">netbird up</code> ответит «Already connected» и выйдет, <strong>не применив ни ключ, ни флаги</strong>. Проверьте <code class="inl">netbird status -d</code>: строки <code class="inl">Management</code>, <code class="inl">FQDN</code> и <code class="inl">Nameservers</code> покажут, куда нода подключена и не перехвачен ли DNS. Лечится <code class="inl">netbird down</code> и повторным <code class="inl">up</code>; если осталась в старом аккаунте — <code class="inl">rm -f /etc/netbird/config.json</code> при остановленной службе.</p>
+          <p>Частый случай на VPS, где netbird ставили раньше. Установщик откажется работать («NetBird service is running») и выйдет, <strong>оставив старый бинарь</strong>, а <code class="inl">netbird up</code> ответит «Already connected» и не применит ни ключ, ни флаги. Со старым бинарём нужного флага может не оказаться вовсе.</p>
+          <p>Признак — порт 53 занят самим агентом: <code class="inl">ss -ulnp | grep ':53 '</code> покажет <code class="inl">netbird</code> на оверлейном адресе.</p>
         </div>
+        <p>Лечится полной переустановкой со сбросом конфигурации. На репликах <code class="inl">install.sh</code> делает это сам:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>systemctl stop netbird
+curl -fsSL https://pkgs.netbird.io/install.sh | sh
+netbird version
+
+systemctl stop netbird
+rm -f /etc/netbird/config.json
+systemctl start netbird
+
+netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 --disable-dns</pre>
+        </div>
+        <p>Старый пир останется в консоли Netbird отдельной записью — удалите его.</p>
         <p>Теперь освобождаем порт 53:</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">node01</span></div>

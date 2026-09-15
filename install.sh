@@ -36,24 +36,56 @@ command -v docker >/dev/null || { echo "docker не установлен" >&2; e
 command -v jq >/dev/null || { apt-get update -qq && apt-get install -y -qq jq curl; }
 
 # --- 1. оверлей -------------------------------------------------------------
-# --disable-dns обязателен: агент иначе правит /etc/resolv.conf,
-# а на DNS-сервере этого быть не должно.
-command -v netbird >/dev/null || curl -fsSL https://pkgs.netbird.io/install.sh | sh
+# --disable-dns обязателен по двум причинам: агент правит /etc/resolv.conf,
+# и его резолвер занимает порт 53 — тот самый, который нужен AdGuard Home.
+#
+# Службу останавливаем ДО установщика: на работающей он отказывается
+# ставиться («NetBird service is running») и молча выходит, оставляя
+# старый бинарь. Со старым бинарём нужного флага может не быть вовсе.
+systemctl stop netbird 2>/dev/null || true
+curl -fsSL https://pkgs.netbird.io/install.sh | sh
+systemctl start netbird 2>/dev/null || true
+sleep 2
 
-if netbird status 2>/dev/null | grep -qi 'Management: Connected'; then
-  echo "агент уже подключён — переподключаю с нужными флагами"
-  netbird down || true
-fi
-netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" --disable-dns
+nb_connect() {
+  netbird down >/dev/null 2>&1 || true
+  netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" --disable-dns
+}
 
-NB_IP=""
-for _ in $(seq 1 15); do
-  NB_IP="$(netbird status --json 2>/dev/null | jq -r '.netbirdIp // empty' | cut -d/ -f1)"
-  [[ -n "$NB_IP" ]] && break
+nb_ip() {
+  local ip=""
+  for _ in $(seq 1 15); do
+    ip="$(netbird status --json 2>/dev/null | jq -r '.netbirdIp // empty' | cut -d/ -f1)"
+    [[ -n "$ip" ]] && break
+    sleep 2
+  done
+  printf '%s' "$ip"
+}
+
+nb_connect
+NB_IP="$(nb_ip)"
+
+# Если резолвер агента всё ещё держит 53, значит флаг не применился
+# к унаследованной конфигурации. Сбрасываем её и подключаемся заново.
+if ss -ulnp 2>/dev/null | grep ':53 ' | grep -q netbird; then
+  echo "резолвер netbird занимает порт 53 — сбрасываю конфигурацию агента"
+  systemctl stop netbird
+  rm -f /etc/netbird/config.json
+  systemctl start netbird
   sleep 2
-done
+  nb_connect
+  NB_IP="$(nb_ip)"
+fi
+
 [[ -n "$NB_IP" ]] || { echo "нода не получила адрес в оверлее" >&2; exit 1; }
 echo "оверлей: $NB_IP"
+
+if ss -ulnp 2>/dev/null | grep ':53 ' | grep -q netbird; then
+  echo "резолвер netbird всё ещё на порту 53." >&2
+  echo "Сверьте имя флага: netbird up --help | grep -i dns" >&2
+  echo "Запасной вариант: --dns-resolver-address 127.0.0.1:5353" >&2
+  exit 1
+fi
 
 # --- 2. освобождаем порт 53 -------------------------------------------------
 # Отключаем stub-listener systemd-resolved и переводим resolv.conf на реальные

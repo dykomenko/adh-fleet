@@ -49,21 +49,30 @@ netbird up --setup-key "$NB_KEY_ORIGIN" --hostname node01 --disable-dns
 Поэтому `gen-sync.sh` собирает список реплик по их оверлейным адресам,
 а не по именам; ничего настраивать для этого не нужно.
 
-**Если агент уже стоял на сервере**, установщик откажется работать
-(«NetBird service is running»), а `netbird up` ответит «Already connected»
-и выйдет, **не применив ни ключ, ни флаги**. Проверьте `netbird status -d`:
-строки `Management`, `FQDN` и `Nameservers` покажут, куда нода подключена
-и не перехвачен ли DNS. Переподключение:
+**Если агент уже стоял на сервере** — частый случай на VPS, где netbird
+ставили раньше. Установщик откажется работать («NetBird service is running»)
+и выйдет, **оставив старый бинарь**, а `netbird up` ответит «Already connected»
+и не применит ни ключ, ни флаги. Со старым бинарём нужного флага может
+не оказаться вовсе.
+
+Признак: порт 53 занят самим агентом.
 
 ```bash
-netbird down && netbird up --setup-key "$NB_KEY_ORIGIN" --hostname node01 --disable-dns
+ss -ulnp | grep ':53 '
 ```
 
-Если осталась в старом аккаунте — сбросьте конфигурацию целиком:
+Лечится полной переустановкой со сбросом конфигурации:
 
 ```bash
+systemctl stop netbird
+curl -fsSL https://pkgs.netbird.io/install.sh | sh
+netbird version
 systemctl stop netbird && rm -f /etc/netbird/config.json && systemctl start netbird
+netbird up --setup-key "$NB_KEY_ORIGIN" --hostname node01 --disable-dns
 ```
+
+Старый пир после этого останется в консоли Netbird отдельной записью —
+удалите его. `install.sh` на репликах делает всё это сам.
 
 ```bash
 sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
