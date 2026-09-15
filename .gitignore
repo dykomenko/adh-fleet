@@ -1,0 +1,10 @@
+# Секреты — никогда в git
+.env
+*.pass
+
+# Шаблон конфига содержит bcrypt-хеш пароля админа
+node/AdGuardHome.yaml.tmpl
+
+# Бэкапы и мусор
+*.tar.gz
+*.bak

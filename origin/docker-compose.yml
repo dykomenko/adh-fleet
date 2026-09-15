@@ -1,0 +1,15 @@
+# adguardhome-sync. Только на origin-ноде.
+# Разворачивается в /opt/agh-sync/docker-compose.yml
+#
+# sync.yaml руками не пишется — его собирает origin/gen-sync.sh
+# по составу группы agh-replica в оверлее.
+
+services:
+  agh-sync:
+    image: ghcr.io/bakito/adguardhome-sync:latest
+    container_name: agh-sync
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./sync.yaml:/config/sync.yaml:ro
+    command: run --config /config/sync.yaml

@@ -1,0 +1,19 @@
+# AdGuard Home. Одинаков на всех нодах парка, включая origin.
+# Разворачивается в /opt/adguardhome/docker-compose.yml
+#
+# network_mode: host обязателен. В bridge-режиме Docker занатит трафик,
+# AGH увидит все запросы как приходящие с адреса docker-шлюза,
+# и статистика с персональными правилами по клиентам сломается.
+
+services:
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./work:/opt/adguardhome/work
+      - ./conf:/opt/adguardhome/conf
+    labels:
+      # Обновление парка — только осознанное, через scripts/fleet-update.sh
+      - "com.centurylinklabs.watchtower.enable=false"
