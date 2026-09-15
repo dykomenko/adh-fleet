@@ -268,14 +268,54 @@ fi
 # --- 5. запуск --------------------------------------------------------------
 docker compose -f "$APP_DIR/docker-compose.yml" up -d
 
+# --- 6. системный резолвер ноды направляется на AGH -------------------------
+# Без этого шага Xray резолвит через то, что раздал хостер, и фильтрация
+# до клиентов не доходит: в журнале AGH видно только ваши собственные
+# проверки. Проявляется не сразу и выглядит как «на одной ноде работает,
+# на другой нет» — состав resolv.conf у хостеров разный.
+#
+# Делается ПОСЛЕ старта контейнера: переключить резолвер на ещё не поднятый
+# AGH означало бы оставить ноду без DNS посреди установки.
+if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
+  command -v dig >/dev/null || apt-get install -y -qq dnsutils >/dev/null 2>&1 || true
+
+  agh_ready=""
+  for _ in $(seq 1 20); do
+    if dig +short +time=1 +tries=1 @127.0.0.1 example.com >/dev/null 2>&1; then
+      agh_ready=1; break
+    fi
+    sleep 1
+  done
+
+  if [[ -n "$agh_ready" ]]; then
+    # Символьная ссылка заменяется обычным файлом: пока /etc/resolv.conf
+    # указывает на каталог systemd-resolved, содержимое перезапишется.
+    cp -a /etc/resolv.conf /etc/resolv.conf.adh-backup 2>/dev/null || true
+    rm -f /etc/resolv.conf
+    printf 'nameserver 127.0.0.1\noptions timeout:2 attempts:2\n' > /etc/resolv.conf
+
+    if getent hosts example.com >/dev/null 2>&1; then
+      echo "системный резолвер переключён на AGH"
+    else
+      echo "резолвинг через AGH не заработал — возвращаю прежний resolv.conf" >&2
+      rm -f /etc/resolv.conf
+      cp -a /etc/resolv.conf.adh-backup /etc/resolv.conf 2>/dev/null \
+        || ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+    fi
+  else
+    echo "AGH не ответил на 127.0.0.1:53 — резолвер ноды оставлен прежним." >&2
+    echo "Фильтрация до клиентов не дойдёт, пока это не исправлено." >&2
+  fi
+fi
+
 echo
 echo "нода $NODE_NAME готова"
 if [[ -n "$CLIENT_NET" ]]; then
   echo "  DNS    0.0.0.0:53 — с localhost и из $CLIENT_NET"
 else
   echo "  DNS    0.0.0.0:53 — только с localhost"
-  echo "         Xray резолвит через системный DNS ноды, настройки не требует"
 fi
+echo "  резолвер ноды: $(grep -m1 '^nameserver' /etc/resolv.conf 2>/dev/null || echo '?')"
 echo "  панель $NB_IP:3000"
 echo
 echo "фильтры приедут с origin в течение часа."
