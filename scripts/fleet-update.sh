@@ -17,7 +17,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ $# -gt 0 ]]; then
   HOSTS=("$@")
 else
-  [[ -f "$ROOT/.env" ]] && { set -a; . "$ROOT/.env"; set +a; }
+  # .env живёт рядом с репозиторием, а не внутри него — так секреты
+  # физически не могут попасть в публичный git.
+  for env in "$ROOT/../.env" "$ROOT/.env"; do
+    [[ -f "$env" ]] && { set -a; . "$env"; set +a; break; }
+  done
   : "${NODES:?передайте хосты аргументами или задайте NODES в .env}"
   read -r -a HOSTS <<< "$NODES"
 fi

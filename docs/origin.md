@@ -11,8 +11,12 @@
 Один раз, до того как трогать серверы. `app.netbird.io`:
 
 1. **Группы** — `agh-origin` и `agh-replica`.
-2. **Setup key** — тип **Reusable**, auto-assign groups → `agh-replica`,
-   срок жизни с запасом.
+2. **Два setup key**, оба с auto-assign нужной группы:
+   - для origin — auto-assign `agh-origin`, хватит одноразового;
+   - для реплик — тип **Reusable**, auto-assign `agh-replica`, срок с запасом.
+
+   Так группа назначается автоматически при подключении и руками в консоли
+   ничего трогать не нужно.
 3. **Истечение пиров — отключить.** Иначе через заданный срок ноды
    потребуют повторной интерактивной авторизации, и весь парк одновременно
    выпадет из оверлея. Снять и в настройках ключа, и в свойствах пиров.
@@ -32,15 +36,28 @@
 
 ```bash
 curl -fsSL https://pkgs.netbird.io/install.sh | sh
-netbird up --setup-key "$NB_KEY" --hostname node01 --disable-dns
+netbird up --setup-key "$NB_KEY_ORIGIN" --hostname node01 --disable-dns
 ```
 
 `--disable-dns` обязателен: агент иначе правит `/etc/resolv.conf`, а на
 DNS-сервере этого быть не должно. Имя флага сверьте через `netbird up --help`
 — между версиями оно переименовывалось.
 
-Группу `agh-origin` назначьте этой ноде в консоли вручную: setup key раздаёт
-`agh-replica`.
+**Если агент уже стоял на сервере**, установщик откажется работать
+(«NetBird service is running»), а `netbird up` ответит «Already connected»
+и выйдет, **не применив ни ключ, ни флаги**. Проверьте `netbird status -d`:
+строки `Management`, `FQDN` и `Nameservers` покажут, куда нода подключена
+и не перехвачен ли DNS. Переподключение:
+
+```bash
+netbird down && netbird up --setup-key "$NB_KEY_ORIGIN" --hostname node01 --disable-dns
+```
+
+Если осталась в старом аккаунте — сбросьте конфигурацию целиком:
+
+```bash
+systemctl stop netbird && rm -f /etc/netbird/config.json && systemctl start netbird
+```
 
 ```bash
 sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf

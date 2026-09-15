@@ -1,0 +1,861 @@
+<title>AdGuard Home на каждой ноде</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@600;700&display=swap">
+<style>
+  :root {
+    --ground:      #F6F8F6;
+    --surface:     #FFFFFF;
+    --surface-alt: #EDF1EE;
+    --ink:         #19211D;
+    --ink-muted:   #5C6862;
+    --ink-faint:   #8A958F;
+    --hairline:    #DCE3DE;
+    --origin:      #2E7D5B;
+    --origin-soft: #E4F0EA;
+    --replica:     #3F6B92;
+    --replica-soft:#E3ECF3;
+    --warn:        #A85B32;
+    --warn-soft:   #F6EAE2;
+    --code-bg:     #1B2320;
+    --code-ink:    #DCE5E0;
+    --code-dim:    #7E8C86;
+
+    --f-sans:  "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --f-serif: "IBM Plex Serif", ui-serif, Georgia, serif;
+    --f-mono:  "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+    --measure: 68ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #111614;
+      --surface:     #191F1C;
+      --surface-alt: #212824;
+      --ink:         #E4EAE6;
+      --ink-muted:   #9AA69F;
+      --ink-faint:   #6F7C75;
+      --hairline:    #2A322D;
+      --origin:      #64C295;
+      --origin-soft: #1C2B24;
+      --replica:     #7FAAD0;
+      --replica-soft:#1A242D;
+      --warn:        #D68B5E;
+      --warn-soft:   #2C231C;
+      --code-bg:     #0D1110;
+      --code-ink:    #D3DCD7;
+      --code-dim:    #6E7B75;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #111614;
+    --surface:     #191F1C;
+    --surface-alt: #212824;
+    --ink:         #E4EAE6;
+    --ink-muted:   #9AA69F;
+    --ink-faint:   #6F7C75;
+    --hairline:    #2A322D;
+    --origin:      #64C295;
+    --origin-soft: #1C2B24;
+    --replica:     #7FAAD0;
+    --replica-soft:#1A242D;
+    --warn:        #D68B5E;
+    --warn-soft:   #2C231C;
+    --code-bg:     #0D1110;
+    --code-ink:    #D3DCD7;
+    --code-dim:    #6E7B75;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 920px;
+    margin: 0 auto;
+    padding-block: 40px 72px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  p, ul, ol { max-width: var(--measure); }
+
+  .masthead { border-bottom: 2px solid var(--ink); padding-bottom: 22px; }
+
+  .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-family: var(--f-serif);
+    font-weight: 700;
+    font-size: clamp(30px, 5.4vw, 44px);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+    margin: 0 0 12px;
+  }
+
+  .standfirst {
+    font-size: 17px;
+    color: var(--ink-muted);
+    margin: 0;
+    max-width: 62ch;
+  }
+
+  .part { margin-top: 56px; }
+
+  .part-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 10px;
+    margin-bottom: 26px;
+  }
+
+  h2 {
+    font-family: var(--f-serif);
+    font-weight: 600;
+    font-size: 26px;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: var(--f-sans);
+    font-weight: 600;
+    font-size: 17px;
+    line-height: 1.35;
+    margin: 30px 0 10px;
+    text-wrap: balance;
+  }
+  .step h3 { margin-top: 0; }
+
+  .part-note {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--ink-faint);
+    margin-left: auto;
+  }
+
+  .chip {
+    display: inline-block;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .chip.origin  { background: var(--origin-soft);  color: var(--origin); }
+  .chip.replica { background: var(--replica-soft); color: var(--replica); }
+
+  .steps { counter-reset: step; list-style: none; margin: 0; padding: 0; max-width: none; }
+
+  .step {
+    counter-increment: step;
+    position: relative;
+    padding: 0 0 34px 52px;
+    border-left: 2px solid var(--hairline);
+    margin-left: 13px;
+  }
+  .step:last-child { border-left-color: transparent; padding-bottom: 8px; }
+
+  .step::before {
+    content: counter(step);
+    position: absolute;
+    left: -14px;
+    top: -2px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--ground);
+    border: 2px solid var(--hairline);
+    color: var(--ink-muted);
+  }
+  .origin-part  .step::before { border-color: var(--origin);  color: var(--origin); }
+  .replica-part .step::before { border-color: var(--replica); color: var(--replica); }
+  .origin-part  .step { border-left-color: var(--origin-soft); }
+  .replica-part .step { border-left-color: var(--replica-soft); }
+  .origin-part  .step:last-child,
+  .replica-part .step:last-child { border-left-color: transparent; }
+
+  .step > p:first-of-type { margin-top: 0; }
+
+  .code {
+    margin: 14px 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--code-bg);
+  }
+
+  .code-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.09);
+    font-family: var(--f-mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--code-dim);
+  }
+  .code-bar .where { margin-left: auto; text-transform: none; letter-spacing: 0; }
+
+  .code pre {
+    margin: 0;
+    padding: 14px;
+    overflow-x: auto;
+    font-family: var(--f-mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--code-ink);
+    tab-size: 2;
+  }
+
+  code.inl {
+    font-family: var(--f-mono);
+    font-size: 0.88em;
+    background: var(--surface-alt);
+    color: var(--ink);
+    padding: 1px 5px;
+    border-radius: 3px;
+    word-break: break-word;
+  }
+
+  .note {
+    margin: 16px 0;
+    padding: 14px 18px;
+    border-left: 3px solid var(--ink-faint);
+    background: var(--surface);
+    border-radius: 0 4px 4px 0;
+    font-size: 15px;
+  }
+  .note p { margin: 0; max-width: none; }
+  .note p + p { margin-top: 8px; }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .note-label {
+    display: block;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--warn);
+    margin-bottom: 6px;
+  }
+  .note:not(.warn) .note-label { color: var(--ink-faint); }
+
+  .table-scroll { overflow-x: auto; margin: 22px 0; }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 520px;
+    font-size: 14.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px 10px 0;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: baseline;
+  }
+  th {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    border-bottom-color: var(--ink-faint);
+  }
+  td.mono { font-family: var(--f-mono); font-size: 13px; }
+
+  .diagram-scroll { overflow-x: auto; margin: 26px 0 8px; padding-bottom: 4px; }
+  .diagram-scroll svg { display: block; min-width: 620px; max-width: 100%; height: auto; }
+  .caption { font-size: 13px; color: var(--ink-faint); font-family: var(--f-mono); margin: 0; }
+
+  .checklist { list-style: none; margin: 0; padding: 0; max-width: none; display: grid; gap: 2px; }
+  .checklist li { margin: 0; }
+  .checklist label {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 11px 14px;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  .checklist input {
+    margin: 4px 0 0;
+    accent-color: var(--origin);
+    flex: none;
+    width: 15px;
+    height: 15px;
+  }
+  .checklist input:focus-visible { outline: 2px solid var(--origin); outline-offset: 2px; }
+  .checklist input:checked + span { color: var(--ink-faint); text-decoration: line-through; }
+
+  ul.plain { padding-left: 20px; }
+  ul.plain li { margin-bottom: 7px; }
+
+  hr.rule { border: 0; border-top: 1px solid var(--hairline); margin: 40px 0 0; }
+
+  .foot {
+    margin-top: 44px;
+    font-size: 13.5px;
+    color: var(--ink-faint);
+    font-family: var(--f-mono);
+    max-width: none;
+  }
+
+  @media (max-width: 560px) {
+    .wrap { padding-block: 28px 56px; }
+    .step { padding-left: 34px; }
+    .part-note { margin-left: 0; width: 100%; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Runbook · DNS-инфраструктура · 30 нод</p>
+    <h1>AdGuard Home на каждой ноде</h1>
+    <p class="standfirst">AGH на всех VPN-серверах с синхронизацией фильтров с одной origin-ноды. Единой точки отказа нет, ручная настройка существует ровно в одном месте, а новая нода ставится одной командой прямо с GitHub и находится синхронизатором сама.</p>
+  </header>
+
+  <section class="part">
+    <div class="part-head">
+      <h2>Что получается в итоге</h2>
+    </div>
+
+    <div class="diagram-scroll">
+      <svg viewBox="0 0 660 320" role="img" aria-label="Схема: origin-нода с синхронизатором раздаёт конфигурацию тридцати репликам через оверлей Netbird; список реплик генерируется автоматически">
+        <g font-family="IBM Plex Mono, monospace" font-size="10.5">
+
+          <rect x="16" y="214" width="628" height="34" rx="4" fill="var(--surface-alt)"/>
+          <text x="30" y="235" fill="var(--ink-muted)" font-size="11">оверлей Netbird · agh-origin → agh-replica, только tcp/3000 · больше ничего не открыто</text>
+
+          <!-- ORIGIN -->
+          <rect x="16" y="56" width="216" height="130" rx="5" fill="var(--surface)" stroke="var(--origin)" stroke-width="2"/>
+          <rect x="16" y="56" width="216" height="24" rx="5" fill="var(--origin-soft)"/>
+          <text x="28" y="73" fill="var(--origin)" font-weight="600" letter-spacing="0.8">ORIGIN · node01</text>
+          <text x="28" y="102" fill="var(--ink)" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">AdGuard Home</text>
+          <text x="28" y="121" fill="var(--ink-muted)">единственное место,</text>
+          <text x="28" y="136" fill="var(--ink-muted)">где вы настраиваете фильтры</text>
+          <text x="28" y="160" fill="var(--origin)" font-weight="500">+ adguardhome-sync</text>
+          <text x="28" y="175" fill="var(--origin)" font-weight="500">+ генератор списка реплик</text>
+          <line x1="124" y1="186" x2="124" y2="214" stroke="var(--origin)" stroke-width="1.5"/>
+
+          <!-- REPLICAS stack -->
+          <rect x="316" y="68" width="300" height="106" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5" opacity="0.35"/>
+          <rect x="308" y="62" width="300" height="106" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5" opacity="0.6"/>
+          <rect x="300" y="56" width="300" height="106" rx="5" fill="var(--surface)" stroke="var(--replica)" stroke-width="1.5"/>
+          <rect x="300" y="56" width="300" height="24" rx="5" fill="var(--replica-soft)"/>
+          <text x="312" y="73" fill="var(--replica)" font-weight="600" letter-spacing="0.8">REPLICA · node02 … node30</text>
+          <text x="312" y="102" fill="var(--ink)" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="600">AdGuard Home</text>
+          <text x="312" y="121" fill="var(--ink-muted)">конфиг подкладывается файлом,</text>
+          <text x="312" y="136" fill="var(--ink-muted)">мастер установки не запускается</text>
+          <text x="312" y="152" fill="var(--replica)">группа agh-replica назначается setup-key'ем</text>
+          <line x1="450" y1="174" x2="450" y2="214" stroke="var(--replica)" stroke-width="1.5" stroke-dasharray="3 3"/>
+
+          <!-- clients -->
+          <text x="16" y="34" fill="var(--ink-faint)">клиенты 10.101.0.0/24</text>
+          <text x="300" y="34" fill="var(--ink-faint)">клиенты 10.102.0.0/24 … 10.130.0.0/24</text>
+          <line x1="124" y1="40" x2="124" y2="56" stroke="var(--ink-faint)" stroke-width="1"/>
+          <line x1="450" y1="40" x2="450" y2="56" stroke="var(--ink-faint)" stroke-width="1"/>
+
+          <!-- flows -->
+          <text x="30" y="276" fill="var(--origin)" font-weight="500">sync раз в час →</text>
+          <path d="M 156 272 L 636 272" stroke="var(--origin)" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/>
+          <path d="M 636 272 l -7 -4 l 0 8 z" fill="var(--origin)"/>
+          <text x="30" y="302" fill="var(--ink-faint)">список реплик пересобирается по группе раз в час · немедленно — sync-now.sh</text>
+        </g>
+      </svg>
+    </div>
+    <p class="caption">Добавление ноды не требует ни одной правки на origin.</p>
+
+    <div class="note">
+      <span class="note-label">Код</span>
+      <p>Скрипты, compose-файлы и шаблон конфига живут в репозитории <code class="inl">dykomenko/adh-fleet</code>, там же пошаговые <code class="inl">docs/origin.md</code> и <code class="inl">docs/replica.md</code>. Эта страница — обзор схемы целиком; источник правды — репозиторий.</p>
+      <p>Секретов в нём нет, поэтому ноды тянут всё прямо с GitHub. Setup key и хеш пароля лежат в <code class="inl">.env</code> на рабочей машине и передаются переменными окружения в командной строке установки; пароль админа — только на origin, в <code class="inl">admin.pass</code> с правами 600.</p>
+    </div>
+
+    <h3>Адресация по формуле, а не по таблице</h3>
+    <p>На тридцати нодах таблица соответствий превращается в источник ошибок. Возьмите правило, из которого адрес выводится по номеру ноды:</p>
+
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Нода</th><th>Роль</th><th>Сеть клиентов</th><th>DNS клиентам</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="mono">node01</td><td><span class="chip origin">origin</span></td><td class="mono">10.101.0.0/24</td><td class="mono">10.101.0.1</td></tr>
+          <tr><td class="mono">node02</td><td><span class="chip replica">replica</span></td><td class="mono">10.102.0.0/24</td><td class="mono">10.102.0.1</td></tr>
+          <tr><td class="mono">node<em>NN</em></td><td><span class="chip replica">replica</span></td><td class="mono">10.(100+NN).0.0/24</td><td class="mono">10.(100+NN).0.1</td></tr>
+          <tr><td class="mono">node30</td><td><span class="chip replica">replica</span></td><td class="mono">10.130.0.0/24</td><td class="mono">10.130.0.1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>Адреса в оверлее назначает Netbird — их знать заранее не нужно, ноды обращаются друг к другу по именам.</p>
+
+    <div class="note">
+      <span class="note-label">Почему сети обязательно разные</span>
+      <p>Персональные правила в AGH привязаны к IP клиента. Если клиентские сети нод пересекутся, правила начнут срабатывать не на тех людях. Формула выше это исключает по построению.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section class="part">
+    <div class="part-head">
+      <h2>Часть 0 · Оверлей</h2>
+      <span class="part-note">один раз, в консоли Netbird</span>
+    </div>
+
+    <p>Синхронизатор своей связности не приносит — ему нужно, чтобы origin дотягивался до панели каждой реплики. Оверлей закрывает это без единого конфига на нодах.</p>
+
+    <p>Регистрируемся на <code class="inl">app.netbird.io</code> и делаем четыре вещи. Все — до того, как поднимать первую ноду.</p>
+
+    <ol class="steps">
+      <li class="step">
+        <h3>Завести группы</h3>
+        <p><code class="inl">agh-origin</code> и <code class="inl">agh-replica</code>. На них завязано и разграничение доступа, и автообнаружение реплик.</p>
+      </li>
+
+      <li class="step">
+        <h3>Создать setup key</h3>
+        <p>Тип — <strong>Reusable</strong>, по умолчанию предлагается одноразовый. В auto-assign groups указать <code class="inl">agh-replica</code>: тогда нода попадёт в нужную группу сама при первом подключении.</p>
+        <p>Срок жизни ключа выставьте с запасом — когда он истечёт, установка новых нод начнёт молча отваливаться.</p>
+      </li>
+
+      <li class="step">
+        <h3>Отключить истечение пиров</h3>
+        <div class="note warn">
+          <span class="note-label">Иначе флот отвалится целиком</span>
+          <p>С включённым peer expiration ноды через заданный срок потребуют повторной интерактивной авторизации — и весь парк одновременно выпадет из оверлея. На headless-серверах истечение надо снять и в настройках ключа, и в свойствах пиров. У Tailscale ровно та же ловушка с key expiry.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <h3>Переписать политику доступа</h3>
+        <p>Одно правило: <code class="inl">agh-origin</code> → <code class="inl">agh-replica</code>, протокол TCP, порт <code class="inl">3000</code>. Направление одностороннее — реплики не должны видеть ни друг друга, ни origin.</p>
+        <p>Больше ничего открывать не нужно. В частности, SSH: обновление парка идёт с рабочей машины, а не с origin, чтобы компрометация origin не открывала остальные ноды.</p>
+        <div class="note warn">
+          <span class="note-label">Дефолтное правило прячется</span>
+          <p>Правило <code class="inl">All → All</code> из свежего аккаунта не отображается на вкладке Policies внутри группы <code class="inl">agh-origin</code> — оно оперирует группой <code class="inl">All</code>. Проверяйте на общей странице Access Control. Пока оно живо, сужение вашей политики не меняет ничего: все ноды видят друг друга насквозь.</p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="note">
+      <span class="note-label">Альтернативы</span>
+      <p><strong>Tailscale</strong> устанавливается так же просто, но бесплатный Personal-план предназначен для личного использования — для коммерческого сервиса нужен платный. <strong>Self-hosted Netbird</strong> убирает зависимость от чужого control plane ценой ещё одного сервиса в эксплуатации. <strong>WireGuard руками</strong> на тридцати нодах не рассматривается: тридцать пар ключей и правка конфига хаба при каждой новой ноде.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section class="part origin-part">
+    <div class="part-head">
+      <h2>Часть A · Origin-нода</h2>
+      <span class="part-note">один раз, вручную, на node01</span>
+    </div>
+
+    <p>Это единственная нода, которую вы настраиваете руками. Здесь же снимается шаблон, по которому разворачиваются все остальные.</p>
+
+    <ol class="steps">
+
+      <li class="step">
+        <h3>Подключить к оверлею и освободить порт 53</h3>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>curl -fsSL https://pkgs.netbird.io/install.sh | sh
+netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 --disable-dns</pre>
+        </div>
+        <div class="note warn">
+          <span class="note-label">--disable-dns обязателен</span>
+          <p>И Netbird, и Tailscale по умолчанию правят <code class="inl">/etc/resolv.conf</code> на ноде. На DNS-сервере это ровно то, чего быть не должно. Точное имя флага сверьте через <code class="inl">netbird up --help</code> — между версиями оно переименовывалось.</p>
+        </div>
+        <p>Группу <code class="inl">agh-origin</code> этой ноде назначьте в консоли вручную — setup key раздаёт <code class="inl">agh-replica</code>.</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' \
+  /etc/systemd/resolved.conf
+sudo systemctl restart systemd-resolved</pre>
+        </div>
+      </li>
+
+      <li class="step">
+        <h3>Развернуть контейнер</h3>
+        <p>Файл <code class="inl">/opt/adguardhome/docker-compose.yml</code> — он одинаков на всех тридцати нодах:</p>
+        <div class="code">
+          <div class="code-bar"><span>yaml</span><span class="where">все ноды</span></div>
+<pre>services:
+  adguardhome:
+    image: adguard/adguardhome:latest
+    container_name: adguardhome
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./work:/opt/adguardhome/work
+      - ./conf:/opt/adguardhome/conf
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"</pre>
+        </div>
+        <p><code class="inl">network_mode: host</code> обязателен: в bridge-режиме Docker занатит трафик, AGH увидит все запросы как приходящие с адреса docker-шлюза, и статистика с персональными правилами сломается.</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>cd /opt/adguardhome &amp;&amp; docker compose up -d</pre>
+        </div>
+      </li>
+
+      <li class="step">
+        <h3>Пройти мастер установки — в последний раз</h3>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">рабочая машина</span></div>
+<pre>ssh -L 3000:127.0.0.1:3000 user@node01</pre>
+        </div>
+        <p>На <code class="inl">http://localhost:3000</code> задаём:</p>
+        <ul class="plain">
+          <li><strong>DNS-сервер</strong> — <code class="inl">10.101.0.1</code>, порт <code class="inl">53</code></li>
+          <li><strong>Веб-интерфейс</strong> — адрес ноды в оверлее (<code class="inl">netbird status</code> покажет), порт <code class="inl">3000</code></li>
+          <li><strong>Логин и пароль админа</strong> — запомните пароль, он станет общим для всего парка</li>
+        </ul>
+        <p>Мастер слушает все интерфейсы, поэтому туннель на <code class="inl">127.0.0.1</code> здесь работает. После сохранения панель переедет на оверлейный адрес.</p>
+      </li>
+
+      <li class="step">
+        <h3>Настроить фильтрацию</h3>
+        <p>Всё заданное здесь разъедется по репликам автоматически: списки блокировок, пользовательские правила, апстримы (например <code class="inl">https://dns.quad9.net/dns-query</code> с bootstrap <code class="inl">9.9.9.10</code>), fallback-серверы, rewrites, сервисы и персональные клиенты.</p>
+        <div class="note">
+          <span class="note-label">Персональные клиенты на тридцати нодах</span>
+          <p>У одного человека на разных нодах разные адреса — <code class="inl">10.101.0.5</code>, <code class="inl">10.117.0.5</code> и так далее. В карточке клиента AGH перечисляется несколько идентификаторов сразу, так что впишите все его возможные адреса. Если клиенты кочуют между нодами произвольно, рассмотрите вместо этого ClientID через DoT или DoH — иначе список идентификаторов станет неуправляемым.</p>
+        </div>
+      </li>
+
+      <li class="step">
+        <h3>Снять шаблон конфига</h3>
+        <p>Готовый <code class="inl">AdGuardHome.yaml</code> с этой ноды и есть то, что превращает установку реплики в одну команду: если файл лежит на месте до первого старта, AGH не показывает мастер вовсе.</p>
+        <p>Писать его руками не надо — снимаем с работающей ноды, подставляя плейсхолдеры вместо адресов:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>curl -fsSL "$REPO/scripts/make-template.sh" -o /tmp/mt.sh
+VPN_GW=10.101.0.1 sudo -E bash /tmp/mt.sh</pre>
+        </div>
+        <p>Так вы не гадаете про <code class="inl">schema_version</code> и формат полей текущей версии AGH. Скрипт заменяет плейсхолдерами адреса <strong>и bcrypt-хеш пароля</strong>, а сам хеш печатает — это <code class="inl">AGH_PASS_HASH</code> для установки нод, положите его в <code class="inl">.env</code>.</p>
+        <p>Готовый шаблон заберите на рабочую машину и закоммитьте в <code class="inl">node/AdGuardHome.yaml.tmpl</code>. Секретов в нём нет, поэтому лежать он может в публичном репозитории — именно из-за этого установка реплики сводится к одной команде.</p>
+      </li>
+
+      <li class="step">
+        <h3>Поднять синхронизатор</h3>
+        <p>Одной командой — она ставит adguardhome-sync, генератор списка реплик и крон:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">node01, root</span></div>
+<pre>AGH_PASS='ПАРОЛЬ' sudo -E bash &lt;(curl -fsSL \
+  https://raw.githubusercontent.com/dykomenko/adh-fleet/main/origin/setup-origin.sh)</pre>
+        </div>
+        <p>Пароль ложится в <code class="inl">/opt/agh-sync/admin.pass</code> с правами 600 — это единственный секрет на origin. Сам <code class="inl">sync.yaml</code> руками не пишется, его собирает генератор из части C.</p>
+        <p>Если реплик ещё нет, скрипт честно скажет об этом и выйдет: поднимите первую ноду и запустите <code class="inl">/opt/agh-sync/sync-now.sh</code>.</p>
+      </li>
+
+    </ol>
+  </section>
+
+  <hr class="rule">
+
+  <section class="part replica-part">
+    <div class="part-head">
+      <h2>Часть B · Реплика</h2>
+      <span class="part-note">одна команда на ноду, 29 раз</span>
+    </div>
+
+    <p>Никакого мастера, никакого браузера, никаких правок на origin, ничего не нужно класть на ноду заранее. Одна команда на самой ноде:</p>
+
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">новая нода, root</span></div>
+<pre>NB_KEY='...' AGH_PASS_HASH='...' \
+  bash &lt;(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) 7</pre>
+    </div>
+
+    <p>Единственный аргумент — номер ноды, из которого выводится вся адресация. Оба значения лежат в <code class="inl">.env</code> на рабочей машине: <code class="inl">NB_KEY</code> — setup key, <code class="inl">AGH_PASS_HASH</code> — bcrypt-хеш пароля админа. Это хеш, а не пароль: подсмотревший команду доступа к панели не получит.</p>
+
+    <div class="note">
+      <span class="note-label">Почему шаблон можно публиковать</span>
+      <p>В <code class="inl">node/AdGuardHome.yaml.tmpl</code> адреса и хеш пароля заменены плейсхолдерами, так что секретов в нём нет — и репозиторий со скриптами может быть публичным, а нода тянет с GitHub вообще всё. Никакого <code class="inl">scp</code> и предварительной подготовки ноды не требуется. <code class="inl">make-template.sh</code> откажется писать шаблон, в котором остался хоть один bcrypt-хеш.</p>
+    </div>
+
+    <p>Что выполняется на ноде:</p>
+
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">bootstrap-agh.sh</span></div>
+<pre>#!/usr/bin/env bash
+set -euo pipefail
+
+NUM="${1:?укажите номер ноды}"
+: "${NB_KEY:?не задан NB_KEY}"
+: "${AGH_PASS_HASH:?не задан AGH_PASS_HASH}"
+
+VPN_GW="10.$((100 + NUM)).0.1"
+
+# 1. оверлей
+curl -fsSL https://pkgs.netbird.io/install.sh | sh
+netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" --disable-dns
+NB_IP="$(netbird status --json | jq -r .netbirdIp | cut -d/ -f1)"
+
+# 2. освобождаем 53
+sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
+systemctl restart systemd-resolved
+
+# 3. конфиг AGH из шаблона — мастер не запустится
+install -d /opt/adguardhome/conf /opt/adguardhome/work
+curl -fsSL "$REPO/node/docker-compose.yml"    -o /opt/adguardhome/docker-compose.yml
+curl -fsSL "$REPO/node/AdGuardHome.yaml.tmpl" -o /opt/adguardhome/AdGuardHome.yaml.tmpl
+sed -e "s|__VPN_GW__|$VPN_GW|g" -e "s|__NB_IP__|$NB_IP|g" \
+    -e "s|__PASS_HASH__|$AGH_PASS_HASH|g" \
+    /opt/adguardhome/AdGuardHome.yaml.tmpl \
+    &gt; /opt/adguardhome/conf/AdGuardHome.yaml
+
+# 4. поехали
+docker compose -f /opt/adguardhome/docker-compose.yml up -d
+
+echo "нода $(hostname -s): DNS $VPN_GW:53, панель $NB_IP:3000"
+echo "фильтры приедут в течение часа, либо сразу: sync-now.sh на origin"</pre>
+    </div>
+
+    <div class="note">
+      <span class="note-label">Что происходит дальше само</span>
+      <p>Setup key назначает ноде группу <code class="inl">agh-replica</code>. Генератор на origin пересобирает список реплик по этой группе раз в час и подхватывает новичка, фильтры приезжают с ближайшим прогоном синхронизации. Вмешательство не требуется — а если ждать не хочется, на origin есть <code class="inl">/opt/agh-sync/sync-now.sh</code>.</p>
+    </div>
+
+    <h3>Проверка</h3>
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">новая нода</span></div>
+<pre>dig @10.107.0.1 doubleclick.net +short</pre>
+    </div>
+    <p>Заблокированный домен должен вернуть <code class="inl">0.0.0.0</code> либо пустой ответ. Если вернулся реальный адрес — фильтры ещё не доехали, подождите прогон.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="part origin-part">
+    <div class="part-head">
+      <h2>Часть C · Автообнаружение реплик</h2>
+      <span class="part-note">то, ради чего всё затевалось</span>
+    </div>
+
+    <p>Список из тридцати реплик в <code class="inl">sync.yaml</code> руками не поддерживают. Генератор строит его по группе в оверлее и перезапускает синхронизатор, только если состав действительно изменился.</p>
+
+    <p>График — часовой: правила меняются редко, гонять чаще смысла нет. Когда ждать не хочется, есть ручной прогон, который пересобирает список и запускает синхронизацию сразу:</p>
+
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>/opt/agh-sync/sync-now.sh</pre>
+    </div>
+
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">/opt/agh-sync/gen-sync.sh</span></div>
+<pre>#!/usr/bin/env bash
+set -euo pipefail
+
+PASS="$(cat /opt/agh-sync/admin.pass)"
+OUT=/opt/agh-sync/sync.yaml
+
+{
+  printf 'cron: "17 * * * *"\nrunOnStart: true\ncontinueOnError: true\n\n'
+  printf 'origin:\n  url: http://127.0.0.1:3000\n'
+  printf '  username: admin\n  password: %s\n\nreplicas:\n' "$PASS"
+
+  netbird status --json \
+    | jq -r '.peers.details[]
+             | select(.groups[]? == "agh-replica")
+             | .fqdn' \
+    | while read -r host; do
+        printf '  - url: http://%s:3000\n' "$host"
+        printf '    username: admin\n    password: %s\n' "$PASS"
+      done
+
+  printf '\nfeatures:\n  dhcp:\n    serverConfig: false\n    staticLeases: false\n'
+} &gt; "$OUT.new"
+
+if cmp -s "$OUT.new" "$OUT"; then
+  rm "$OUT.new"
+else
+  mv "$OUT.new" "$OUT"
+  docker restart agh-sync
+fi</pre>
+    </div>
+
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>echo '5 * * * * root /opt/agh-sync/gen-sync.sh' \
+  | sudo tee /etc/cron.d/agh-sync-gen</pre>
+    </div>
+
+    <div class="note warn">
+      <span class="note-label">Сверьте структуру JSON</span>
+      <p>Имена полей в выводе <code class="inl">netbird status --json</code> менялись между версиями. Перед первым запуском посмотрите фактический вывод и поправьте jq-выражение. Для продакшена надёжнее ходить в Management API (<code class="inl">GET /api/peers</code> с токеном) — там контракт стабильнее, чем у CLI.</p>
+    </div>
+
+    <p>Офлайн-ноды из списка намеренно не исключаются: <code class="inl">continueOnError</code> позволяет синхронизатору пропустить недоступную реплику и обновить остальные, а вернувшаяся нода догонится сама. Отфильтруй мы их по статусу — пришлось бы ждать следующей пересборки списка.</p>
+
+    <h3>Отключение ноды</h3>
+    <p>Удалите пир в консоли Netbird. В течение часа он исчезнет из <code class="inl">sync.yaml</code>, синхронизатор перезапустится с новым составом. Ничего чистить руками не нужно.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="part">
+    <div class="part-head">
+      <h2>Часть D · Клиенты</h2>
+      <span class="part-note">адрес шлюза своей ноды</span>
+    </div>
+
+    <p>Каждому клиенту прописывается DNS того сервера, к которому он подключается. Никаких вторых и запасных DNS: Windows и Android опрашивают перечисленные серверы параллельно, и фильтрация потечёт постоянно, а не только при аварии.</p>
+
+    <h3>WireGuard</h3>
+    <p>Push-механизма нет, адрес подставляется при генерации клиентского конфига:</p>
+    <div class="code">
+      <div class="code-bar"><span>ini</span><span class="where">клиент ноды node07</span></div>
+<pre>[Interface]
+PrivateKey = ...
+Address = 10.107.0.5/32
+DNS = 10.107.0.1</pre>
+    </div>
+
+    <h3>OpenVPN</h3>
+    <div class="code">
+      <div class="code-bar"><span>conf</span><span class="where">серверный конфиг node07</span></div>
+<pre>push "dhcp-option DNS 10.107.0.1"
+push "block-outside-dns"</pre>
+    </div>
+    <p><code class="inl">block-outside-dns</code> нужен Windows-клиентам: без него система продолжит спрашивать DNS физического интерфейса в обход туннеля.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="part">
+    <div class="part-head">
+      <h2>Часть E · Эксплуатация</h2>
+    </div>
+
+    <h3>Обновление парка</h3>
+    <p>Тег <code class="inl">latest</code> означает, что момент обновления выбираете вы. Прогоняйте все ноды в одном окне, чтобы версии не разъезжались дольше пары минут:</p>
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">рабочая машина</span></div>
+<pre>./scripts/fleet-update.sh node02 node03 node07
+./scripts/fleet-update.sh          # или все хосты из NODES в .env</pre>
+    </div>
+    <div class="note">
+      <span class="note-label">Почему не с origin</span>
+      <p>Обновление намеренно запускается с рабочей машины. Держать на origin ssh-доступ ко всему парку означало бы, что компрометация одной ноды открывает остальные — а рабочая машина доступ к нодам и так имеет. Побочный выигрыш: в политике Netbird достаточно одного порта 3000, SSH внутри оверлея открывать не нужно.</p>
+    </div>
+
+    <h3>Точка отката</h3>
+    <p><code class="inl">latest</code> сам по себе вернуться назад не даёт, поэтому перед обновлением фиксируем образ:</p>
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">любая нода</span></div>
+<pre>docker inspect --format '{{index .RepoDigests 0}}' adguardhome</pre>
+    </div>
+    <p>Полученный <code class="inl">adguard/adguardhome@sha256:…</code> подставляется вместо тега в compose, если релиз окажется неудачным.</p>
+
+    <h3>Бэкап</h3>
+    <p>Реальная конфигурация существует в одном экземпляре — на origin. Тридцать реплик восстанавливаются из неё одним прогоном синхронизации, поэтому бэкапить достаточно её и шаблон:</p>
+    <div class="code">
+      <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>tar czf agh-$(date +%F).tar.gz \
+  -C /opt/adguardhome conf AdGuardHome.yaml.tmpl</pre>
+    </div>
+
+    <h3>Если реплика отстала</h3>
+    <ul class="plain">
+      <li><code class="inl">docker logs agh-sync</code> на origin — видно, какая нода не ответила и почему;</li>
+      <li>проверьте, что нода вообще в списке: <code class="inl">grep node07 /opt/agh-sync/sync.yaml</code>;</li>
+      <li>проверьте доступность панели по оверлею: <code class="inl">curl -su admin:ПАРОЛЬ http://node07:3000/control/status</code>;</li>
+      <li>убедитесь, что версии AGH не разъехались далеко — в пределах патчей это безопасно, на смене минорной версии API может измениться.</li>
+    </ul>
+
+    <div class="note">
+      <span class="note-label">Чего у этой схемы нет</span>
+      <p>Сводной статистики и единого лога запросов: и то, и другое остаётся на каждой ноде своим. Это прямая плата за отсутствие единой точки отказа — падение любой ноды задевает только её собственных клиентов, у которых в этот момент всё равно нет туннеля. Если сводная картина нужна, снимайте метрики отдельно: у AGH есть API статистики, данные с тридцати нод собираются в Prometheus или ClickHouse.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section class="part">
+    <div class="part-head">
+      <h2>Приёмка</h2>
+      <span class="part-note">отметки сохраняются в браузере</span>
+    </div>
+
+    <ul class="checklist" id="cl">
+      <li><label><input type="checkbox" id="k1"><span>Истечение пиров и setup key отключено — флот не отвалится через месяц</span></label></li>
+      <li><label><input type="checkbox" id="k2"><span>Политика сужена до <code class="inl">agh-origin → agh-replica</code>, tcp/3000 — не <code class="inl">ALL/ALL</code></span></label></li>
+      <li><label><input type="checkbox" id="k2b"><span>На странице Access Control не осталось правила <code class="inl">All → All</code></span></label></li>
+      <li><label><input type="checkbox" id="k3"><span>На нодах <code class="inl">resolvectl status</code> не показывает вмешательства агента оверлея в DNS</span></label></li>
+      <li><label><input type="checkbox" id="k4"><span><code class="inl">ss -ulnp | grep :53</code> показывает AdGuard Home, а не systemd-resolved</span></label></li>
+      <li><label><input type="checkbox" id="k5"><span>С хоста вне оверлея <code class="inl">dig @публичный_IP example.com</code> не отвечает ни на одной ноде</span></label></li>
+      <li><label><input type="checkbox" id="k6"><span>Новая нода поднимается одной командой и мастер установки не показывает</span></label></li>
+      <li><label><input type="checkbox" id="k6b"><span><code class="inl">sync-now.sh</code> на origin прогоняет синхронизацию немедленно</span></label></li>
+      <li><label><input type="checkbox" id="k7"><span>Тестовая нода появилась в <code class="inl">sync.yaml</code> сама, без правок на origin</span></label></li>
+      <li><label><input type="checkbox" id="k8"><span>Заблокированный домен режется на выборочных нодах из разных концов списка</span></label></li>
+      <li><label><input type="checkbox" id="k9"><span>В клиентских конфигах прописан DNS своей ноды и только один</span></label></li>
+      <li><label><input type="checkbox" id="k10"><span>Сделан бэкап <code class="inl">conf</code> и шаблона с origin-ноды</span></label></li>
+    </ul>
+
+    <p class="foot">Пункт 5 проверяется только снаружи оверлея. Пункт 7 — главный: если он выполняется, тридцать первая нода не будет стоить вам ничего.</p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var KEY = 'agh-runbook-checks-v2';
+    var boxes = document.querySelectorAll('#cl input[type=checkbox]');
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { saved = {}; }
+
+    boxes.forEach(function (b) {
+      if (saved[b.id]) b.checked = true;
+      b.addEventListener('change', function () {
+        var state = {};
+        boxes.forEach(function (x) { if (x.checked) state[x.id] = 1; });
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      });
+    });
+  })();
+</script>
