@@ -2,8 +2,12 @@
 #
 # Ставит AdGuard Home на реплику. Запускается НА САМОЙ НОДЕ, от root.
 #
-#   NB_KEY=<setup key> AGH_PASS_HASH='<bcrypt>' \
+#   NB_KEY_REPLICA='<setup key реплик>' AGH_PASS_HASH='<bcrypt>' \
 #     bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) 7
+#
+# Ключ именно РЕПЛИК (auto-assign группы agh-replica). С ключом origin нода
+# попадёт в agh-origin, и синхронизатор её не найдёт — при этом установка
+# пройдёт без единой ошибки.
 #
 # Единственный аргумент — номер ноды. Из него выводится сеть клиентов:
 #   нода N -> 10.(100+N).0.0/24, шлюз 10.(100+N).0.1
@@ -21,7 +25,16 @@ REPO="${REPO:-https://raw.githubusercontent.com/dykomenko/adh-fleet/main}"
 APP_DIR=/opt/adguardhome
 
 NUM="${1:?укажите номер ноды, например 7}"
-: "${NB_KEY:?не задан NB_KEY — многоразовый setup key Netbird}"
+
+# Принимаем имя ровно как в .env, чтобы не было шага переименования:
+# ключей два, и подставить не тот — значит увести ноду в группу agh-origin,
+# где синхронизатор её никогда не найдёт.
+NB_KEY="${NB_KEY_REPLICA:-${NB_KEY:-}}"
+[[ -n "$NB_KEY" ]] || {
+  echo "не задан ключ реплик." >&2
+  echo "Передайте NB_KEY_REPLICA из .env — именно ключ РЕПЛИК, не origin." >&2
+  exit 1
+}
 : "${AGH_PASS_HASH:?не задан AGH_PASS_HASH — bcrypt-хеш пароля админа с origin}"
 
 [[ "$NUM" =~ ^[0-9]+$ ]] || { echo "номер ноды должен быть числом" >&2; exit 1; }

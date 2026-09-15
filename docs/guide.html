@@ -710,11 +710,11 @@ sudo bash /tmp/mt.sh</pre>
 
     <div class="code">
       <div class="code-bar"><span>bash</span><span class="where">новая нода, root</span></div>
-<pre>NB_KEY='...' AGH_PASS_HASH='...' \
+<pre>NB_KEY_REPLICA='...' AGH_PASS_HASH='...' \
   bash &lt;(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) 7</pre>
     </div>
 
-    <p>Единственный аргумент — номер ноды, из которого выводится вся адресация. Оба значения лежат в <code class="inl">.env</code> на рабочей машине: <code class="inl">NB_KEY</code> — setup key, <code class="inl">AGH_PASS_HASH</code> — bcrypt-хеш пароля админа. Это хеш, а не пароль: подсмотревший команду доступа к панели не получит.</p>
+    <p>Единственный аргумент — номер ноды, из которого выводится вся адресация. Оба значения лежат в <code class="inl">.env</code> на рабочей машине: <code class="inl">NB_KEY_REPLICA</code> — setup key реплик, <code class="inl">AGH_PASS_HASH</code> — bcrypt-хеш пароля админа. Это хеш, а не пароль: подсмотревший команду доступа к панели не получит.</p>
 
     <div class="note">
       <span class="note-label">Почему шаблон можно публиковать</span>
@@ -729,7 +729,10 @@ sudo bash /tmp/mt.sh</pre>
 set -euo pipefail
 
 NUM="${1:?укажите номер ноды}"
-: "${NB_KEY:?не задан NB_KEY}"
+# имя как в .env, чтобы не было шага переименования:
+# подставить origin-ключ = увести ноду в группу agh-origin
+NB_KEY="${NB_KEY_REPLICA:-${NB_KEY:-}}"
+[[ -n "$NB_KEY" ]] || { echo "не задан ключ реплик" >&2; exit 1; }
 : "${AGH_PASS_HASH:?не задан AGH_PASS_HASH}"
 
 CLIENT_NET="10.$((100 + NUM)).0.0/24"

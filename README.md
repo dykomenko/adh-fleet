@@ -10,9 +10,13 @@ AGH на каждом VPN-сервере, фильтры синхронизир�
 ## Установка реплики
 
 ```bash
-NB_KEY='...' AGH_PASS_HASH='...' \
+NB_KEY_REPLICA='...' AGH_PASS_HASH='...' \
   bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) 7
 ```
+
+Ключей два и они не взаимозаменяемы: `NB_KEY_ORIGIN` с auto-assign группы
+`agh-origin` — только для главной ноды, `NB_KEY_REPLICA` с `agh-replica` —
+для всех остальных. Имена совпадают с `.env`, переименовывать не нужно.
 
 Аргумент — номер ноды. Всё остальное скрипт делает сам: подключает ноду
 к оверлею, освобождает порт 53, разворачивает AGH с готовым конфигом.
