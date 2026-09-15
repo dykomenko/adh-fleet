@@ -3,7 +3,11 @@
 # Ставит AdGuard Home на реплику. Запускается НА САМОЙ НОДЕ, от root.
 #
 #   NB_KEY_REPLICA='<setup key реплик>' AGH_PASS_HASH='<bcrypt>' \
-#     bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) 7
+#     bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/install.sh) 7 [имя]
+#
+# Первый аргумент — НОМЕР ноды, обязательно число: из него выводится сеть
+# клиентов для правила firewall. Второй, необязательный, — имя пира
+# в консоли Netbird; по умолчанию node07 для седьмой ноды.
 #
 # Ключ именно РЕПЛИК (auto-assign группы agh-replica). С ключом origin нода
 # попадёт в agh-origin, и синхронизатор её не найдёт — при этом установка
@@ -58,7 +62,14 @@ fi
 
 CLIENT_NET="10.$((100 + NUM)).0.0/24"
 VPN_GW="10.$((100 + NUM)).0.1"
-echo "нода $(hostname -s), номер $NUM, сеть клиентов $CLIENT_NET"
+
+# Имя пира в Netbird. По умолчанию выводится из номера — в консоли тогда
+# ровный список node01…node30 вместо сгенерированных хостером имён вроде
+# instance101672, в которых на тридцати нодах не разобраться.
+# Второй аргумент позволяет задать своё имя.
+NODE_NAME="${2:-node$(printf '%02d' "$NUM")}"
+
+echo "нода $NODE_NAME (хост $(hostname -s)), номер $NUM, сеть клиентов $CLIENT_NET"
 
 command -v docker >/dev/null || { echo "docker не установлен" >&2; exit 1; }
 command -v jq >/dev/null || { apt-get update -qq && apt-get install -y -qq jq curl; }
@@ -101,7 +112,7 @@ NB_MGMT="${NB_MGMT:-https://api.netbird.io:443}"
 nb_connect() {
   netbird down >/dev/null 2>&1 || true
   netbird up --management-url "$NB_MGMT" \
-    --setup-key "$NB_KEY" --hostname "$(hostname -s)" \
+    --setup-key "$NB_KEY" --hostname "$NODE_NAME" \
     --disable-dns --dns-resolver-address "$NB_RESOLVER"
 }
 
