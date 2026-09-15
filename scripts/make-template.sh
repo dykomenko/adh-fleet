@@ -15,7 +15,6 @@ set -euo pipefail
 
 CONF=/opt/adguardhome/conf/AdGuardHome.yaml
 OUT="${1:-/tmp/AdGuardHome.yaml.tmpl}"
-: "${VPN_GW:?экспортируйте VPN_GW — адрес шлюза VPN на origin, например 10.101.0.1}"
 
 [[ -f "$CONF" ]] || { echo "нет $CONF — origin ещё не настроен" >&2; exit 1; }
 command -v jq >/dev/null || { echo "нужен jq" >&2; exit 1; }
@@ -27,14 +26,21 @@ NB_IP="$(netbird status --json | jq -r '.netbirdIp // empty' | cut -d/ -f1)"
 HASH="$(grep -oE '\$2[aby]\$[0-9]{2}\$[A-Za-z0-9./]{53}' "$CONF" | head -1)"
 [[ -n "$HASH" ]] || { echo "не нашёл bcrypt-хеш пароля в $CONF" >&2; exit 1; }
 
-sed -e "s|${VPN_GW}|__VPN_GW__|g" \
-    -e "s|${NB_IP}|__NB_IP__|g" \
+sed -e "s|${NB_IP}|__NB_IP__|g" \
     -e "s|${HASH//\//\\/}|__PASS_HASH__|g" \
     "$CONF" > "$OUT"
 
-for ph in __VPN_GW__ __NB_IP__ __PASS_HASH__; do
+for ph in __NB_IP__ __PASS_HASH__; do
   grep -q "$ph" "$OUT" || { echo "плейсхолдер $ph не подставился" >&2; exit 1; }
 done
+
+# DNS должен слушать все интерфейсы: VPN-интерфейс появляется и исчезает
+# при рестартах, привязка к его адресу ломает старт AGH после перезагрузки.
+if ! grep -qE '^\s+- 0\.0\.0\.0\s*$' "$OUT"; then
+  echo "ВНИМАНИЕ: в bind_hosts не видно 0.0.0.0." >&2
+  echo "В мастере AGH для DNS-сервера должно быть выбрано «Все интерфейсы»," >&2
+  echo "иначе реплики не примут этот шаблон — у них своя адресация." >&2
+fi
 
 # Страховка: убедиться, что в шаблон не утёк ни один bcrypt-хеш
 if grep -qE '\$2[aby]\$[0-9]{2}\$' "$OUT"; then
