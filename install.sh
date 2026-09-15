@@ -36,20 +36,29 @@ command -v docker >/dev/null || { echo "docker не установлен" >&2; e
 command -v jq >/dev/null || { apt-get update -qq && apt-get install -y -qq jq curl; }
 
 # --- 1. оверлей -------------------------------------------------------------
-# --disable-dns обязателен по двум причинам: агент правит /etc/resolv.conf,
-# и его резолвер занимает порт 53 — тот самый, который нужен AdGuard Home.
+# Нужны ОБА флага, проверено на netbird 0.78.2:
+#
+#   --disable-dns            запрещает агенту править настройки DNS системы,
+#                            но локальный резолвер при этом всё равно поднимается;
+#   --dns-resolver-address   уводит этот резолвер с порта 53, который нужен AGH.
+#
+# Только вторым флагом порт освобождается. 5053 — из примера в справке netbird;
+# 5353 занят mDNS и на образах с avahi может конфликтовать.
 #
 # Службу останавливаем ДО установщика: на работающей он отказывается
 # ставиться («NetBird service is running») и молча выходит, оставляя
-# старый бинарь. Со старым бинарём нужного флага может не быть вовсе.
+# старый бинарь.
 systemctl stop netbird 2>/dev/null || true
 curl -fsSL https://pkgs.netbird.io/install.sh | sh
 systemctl start netbird 2>/dev/null || true
 sleep 2
 
+NB_RESOLVER="${NB_RESOLVER:-127.0.0.1:5053}"
+
 nb_connect() {
   netbird down >/dev/null 2>&1 || true
-  netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" --disable-dns
+  netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" \
+    --disable-dns --dns-resolver-address "$NB_RESOLVER"
 }
 
 nb_ip() {
@@ -81,9 +90,8 @@ fi
 echo "оверлей: $NB_IP"
 
 if ss -ulnp 2>/dev/null | grep ':53 ' | grep -q netbird; then
-  echo "резолвер netbird всё ещё на порту 53." >&2
-  echo "Сверьте имя флага: netbird up --help | grep -i dns" >&2
-  echo "Запасной вариант: --dns-resolver-address 127.0.0.1:5353" >&2
+  echo "резолвер netbird всё ещё на порту 53 — дальше идти нельзя." >&2
+  echo "Сверьте флаги вашей версии: netbird up --help | grep -i dns" >&2
   exit 1
 fi
 

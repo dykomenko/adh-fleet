@@ -513,13 +513,18 @@
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
 <pre>curl -fsSL https://pkgs.netbird.io/install.sh | sh
-netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 --disable-dns</pre>
+netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 \
+  --disable-dns --dns-resolver-address 127.0.0.1:5053</pre>
         </div>
         <div class="note warn">
-          <span class="note-label">--disable-dns обязателен</span>
-          <p>Две причины. Агент правит <code class="inl">/etc/resolv.conf</code> на ноде — на DNS-сервере этого быть не должно. И его собственный резолвер <strong>занимает порт 53</strong> на оверлейном адресе, то есть ровно тот, который нужен AdGuard Home.</p>
-          <p>Точное имя флага сверьте через <code class="inl">netbird up --help</code> — между версиями оно менялось. Запасной вариант, если такого флага нет: <code class="inl">--dns-resolver-address 127.0.0.1:5353</code> уводит резолвер с 53-го порта.</p>
+          <span class="note-label">Нужны оба DNS-флага</span>
+          <p>Проверено на netbird 0.78.2. <code class="inl">--disable-dns</code> запрещает агенту править настройки DNS системы, но его локальный резолвер при этом <strong>всё равно поднимается и занимает порт 53</strong> на оверлейном адресе — ровно тот, который нужен AdGuard Home.</p>
+          <p>Освобождает порт только второй флаг: <code class="inl">--dns-resolver-address</code> уводит резолвер в другое место. Порт 5053 взят из примера в справке netbird; 5353 тоже работает, но это порт mDNS и на образах с avahi может конфликтовать.</p>
           <p>Плата — имена вида <code class="inl">node07.netbird.cloud</code> на нодах не разрешаются. Поэтому <code class="inl">gen-sync.sh</code> собирает список реплик по оверлейным адресам, а не по именам; настраивать для этого ничего не нужно.</p>
+          <div class="code" style="margin-top:12px">
+            <div class="code-bar"><span>bash</span><span class="where">проверка</span></div>
+<pre>ss -ulnp | grep ':53 ' || echo "порт 53 свободен"</pre>
+          </div>
         </div>
         <div class="note warn">
           <span class="note-label">Если агент уже стоял</span>
@@ -537,7 +542,8 @@ systemctl stop netbird
 rm -f /etc/netbird/config.json
 systemctl start netbird
 
-netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 --disable-dns</pre>
+netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 \
+  --disable-dns --dns-resolver-address 127.0.0.1:5053</pre>
         </div>
         <p>Старый пир останется в консоли Netbird отдельной записью — удалите его.</p>
         <p>Теперь освобождаем порт 53:</p>
@@ -700,7 +706,8 @@ CLIENT_NET="10.$((100 + NUM)).0.0/24"
 
 # 1. оверлей
 curl -fsSL https://pkgs.netbird.io/install.sh | sh
-netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" --disable-dns
+netbird up --setup-key "$NB_KEY" --hostname "$(hostname -s)" \
+  --disable-dns --dns-resolver-address 127.0.0.1:5053
 NB_IP="$(netbird status --json | jq -r .netbirdIp | cut -d/ -f1)"
 
 # 2. освобождаем 53

@@ -27,9 +27,12 @@ HASH_SHOWN="${AGH_PASS_HASH:-ХЕШ-ИЗ-ШАГА-5}"
 
 mkdir -p "$OUT_DIR"
 
+# Подставляем по минимальному якорю, а не по строке целиком: текст команд
+# вокруг правится часто, и длинный шаблон молча переставал совпадать.
 sed -e "s|<title>AdGuard Home на каждой ноде</title>|<title>AdGuard Home на каждой ноде — личная копия</title>|" \
-    -e "s|netbird up --setup-key \&lt;КЛЮЧ\&gt; --hostname node01 --disable-dns|netbird up --setup-key ${NB_KEY_ORIGIN} --hostname node01 --disable-dns|" \
-    -e "s|NB_KEY='\.\.\.' AGH_PASS_HASH='\.\.\.'|NB_KEY='${NB_KEY_REPLICA}' AGH_PASS_HASH='${HASH_SHOWN}'|" \
+    -e "s|--setup-key \&lt;КЛЮЧ\&gt;|--setup-key ${NB_KEY_ORIGIN}|g" \
+    -e "s|NB_KEY='\.\.\.'|NB_KEY='${NB_KEY_REPLICA}'|g" \
+    -e "s|AGH_PASS_HASH='\.\.\.'|AGH_PASS_HASH='${HASH_SHOWN}'|g" \
     "$SRC" > "$OUT.tmp"
 
 # Баннер сразу после шапки — чтобы копию нельзя было спутать с исходником
