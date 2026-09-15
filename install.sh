@@ -274,7 +274,7 @@ if [[ -n "$CLIENT_NET" ]]; then
   echo "  DNS    0.0.0.0:53 — с localhost и из $CLIENT_NET"
 else
   echo "  DNS    0.0.0.0:53 — только с localhost"
-  echo "         для Xray укажите в его конфиге: \"dns\": { \"servers\": [\"127.0.0.1\"] }"
+  echo "         Xray резолвит через системный DNS ноды, настройки не требует"
 fi
 echo "  панель $NB_IP:3000"
 echo
