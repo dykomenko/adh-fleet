@@ -39,9 +39,15 @@ curl -fsSL https://pkgs.netbird.io/install.sh | sh
 netbird up --setup-key "$NB_KEY_ORIGIN" --hostname node01 --disable-dns
 ```
 
-`--disable-dns` обязателен: агент иначе правит `/etc/resolv.conf`, а на
-DNS-сервере этого быть не должно. Имя флага сверьте через `netbird up --help`
-— между версиями оно переименовывалось.
+`--disable-dns` обязателен по двум причинам: агент правит `/etc/resolv.conf`,
+а его собственный резолвер **занимает порт 53** на оверлейном адресе — тот
+самый, который нужен AdGuard Home. Имя флага сверьте через
+`netbird up --help`, между версиями оно менялось. Запасной вариант —
+`--dns-resolver-address 127.0.0.1:5353`, он уводит резолвер с 53-го порта.
+
+Плата за это — имена вида `node07.netbird.cloud` на нодах не разрешаются.
+Поэтому `gen-sync.sh` собирает список реплик по их оверлейным адресам,
+а не по именам; ничего настраивать для этого не нужно.
 
 **Если агент уже стоял на сервере**, установщик откажется работать
 («NetBird service is running»), а `netbird up` ответит «Already connected»
@@ -224,6 +230,13 @@ tar czf agh-$(date +%F).tar.gz -C /opt/adguardhome conf
 
 ```bash
 docker logs agh-sync
-grep node07 /opt/agh-sync/sync.yaml
-curl -su admin:ПАРОЛЬ http://node07:3000/control/status
+grep -c '^  - url:' /opt/agh-sync/sync.yaml
+netbird status --json | jq -r '.peers.details[]? | select(.groups[]? == "agh-replica") | .netbirdIp'
+```
+
+Реплики в `sync.yaml` записаны оверлейными адресами, а не именами. Проверить
+конкретную:
+
+```bash
+curl -su admin:ПАРОЛЬ http://100.x.x.x:3000/control/status
 ```

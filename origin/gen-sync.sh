@@ -29,17 +29,26 @@ umask 077
   printf '  password: %s\n\n' "$PASS"
   printf 'replicas:\n'
 
+  # Адреса, а не имена: у netbird отключено управление DNS (иначе его
+  # резолвер занимает порт 53, нужный AdGuard Home), поэтому имена вида
+  # node07.netbird.cloud на нодах не разрешаются.
+  #
   # Офлайн-ноды намеренно не отфильтровываются: continueOnError позволит
   # пропустить недоступную и обновить остальные, а вернувшаяся догонится сама.
   #
   # Структура вывода netbird status --json менялась между версиями —
   # сверьте фактические имена полей перед первым запуском.
   netbird status --json \
-    | jq -r --arg g "$GROUP" '.peers.details[]? | select(.groups[]? == $g) | .fqdn' \
+    | jq -r --arg g "$GROUP" '
+        .peers.details[]?
+        | select(.groups[]? == $g)
+        | (.netbirdIp // .ip // empty)
+        | split("/")[0]
+      ' \
     | sort -u \
-    | while read -r host; do
-        [[ -n "$host" ]] || continue
-        printf '  - url: http://%s:3000\n' "$host"
+    | while read -r addr; do
+        [[ -n "$addr" ]] || continue
+        printf '  - url: http://%s:3000\n' "$addr"
         printf '    username: admin\n'
         printf '    password: %s\n' "$PASS"
       done

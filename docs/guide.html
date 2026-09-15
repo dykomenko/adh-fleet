@@ -517,7 +517,9 @@ netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 --disable-dns</pre>
         </div>
         <div class="note warn">
           <span class="note-label">--disable-dns обязателен</span>
-          <p>И Netbird, и Tailscale по умолчанию правят <code class="inl">/etc/resolv.conf</code> на ноде. На DNS-сервере это ровно то, чего быть не должно. Точное имя флага сверьте через <code class="inl">netbird up --help</code> — между версиями оно переименовывалось.</p>
+          <p>Две причины. Агент правит <code class="inl">/etc/resolv.conf</code> на ноде — на DNS-сервере этого быть не должно. И его собственный резолвер <strong>занимает порт 53</strong> на оверлейном адресе, то есть ровно тот, который нужен AdGuard Home.</p>
+          <p>Точное имя флага сверьте через <code class="inl">netbird up --help</code> — между версиями оно менялось. Запасной вариант, если такого флага нет: <code class="inl">--dns-resolver-address 127.0.0.1:5353</code> уводит резолвер с 53-го порта.</p>
+          <p>Плата — имена вида <code class="inl">node07.netbird.cloud</code> на нодах не разрешаются. Поэтому <code class="inl">gen-sync.sh</code> собирает список реплик по оверлейным адресам, а не по именам; настраивать для этого ничего не нужно.</p>
         </div>
         <div class="note warn">
           <span class="note-label">Если агент уже стоял</span>
@@ -760,12 +762,15 @@ OUT=/opt/agh-sync/sync.yaml
   printf 'origin:\n  url: http://127.0.0.1:3000\n'
   printf '  username: admin\n  password: %s\n\nreplicas:\n' "$PASS"
 
+  # Адреса, а не имена: у netbird отключено управление DNS, иначе его
+  # резолвер занимает порт 53, нужный AdGuard Home.
   netbird status --json \
     | jq -r '.peers.details[]
              | select(.groups[]? == "agh-replica")
-             | .fqdn' \
-    | while read -r host; do
-        printf '  - url: http://%s:3000\n' "$host"
+             | (.netbirdIp // .ip // empty) | split("/")[0]' \
+    | sort -u \
+    | while read -r addr; do
+        printf '  - url: http://%s:3000\n' "$addr"
         printf '    username: admin\n    password: %s\n' "$PASS"
       done
 
