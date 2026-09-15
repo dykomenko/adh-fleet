@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#
+# Собирает личную копию гайда из обезличенной. Запускается НА РАБОЧЕЙ МАШИНЕ.
+#
+#   ./scripts/make-personal-guide.sh
+#
+# Источник правды — docs/guide.html в репозитории, там плейсхолдеры.
+# Результат — ../guide/agh-runbook.html с подставленными ключами из ../.env,
+# за пределами рабочего дерева git. Делиться можно только исходником.
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SRC="$ROOT/docs/guide.html"
+OUT_DIR="$(cd "$ROOT/.." && pwd)/guide"
+OUT="$OUT_DIR/agh-runbook.html"
+
+[[ -f "$SRC" ]] || { echo "нет $SRC" >&2; exit 1; }
+
+for env in "$ROOT/../.env" "$ROOT/.env"; do
+  [[ -f "$env" ]] && { set -a; . "$env"; set +a; break; }
+done
+: "${NB_KEY_ORIGIN:?не задан NB_KEY_ORIGIN в .env}"
+: "${NB_KEY_REPLICA:?не задан NB_KEY_REPLICA в .env}"
+
+HASH_SHOWN="${AGH_PASS_HASH:-ХЕШ-ИЗ-ШАГА-5}"
+
+mkdir -p "$OUT_DIR"
+
+sed -e "s|<title>AdGuard Home на каждой ноде</title>|<title>AdGuard Home на каждой ноде — личная копия</title>|" \
+    -e "s|netbird up --setup-key \&lt;КЛЮЧ\&gt; --hostname node01 --disable-dns|netbird up --setup-key ${NB_KEY_ORIGIN} --hostname node01 --disable-dns|" \
+    -e "s|NB_KEY='\.\.\.' AGH_PASS_HASH='\.\.\.'|NB_KEY='${NB_KEY_REPLICA}' AGH_PASS_HASH='${HASH_SHOWN}'|" \
+    "$SRC" > "$OUT.tmp"
+
+# Баннер сразу после шапки — чтобы копию нельзя было спутать с исходником
+BANNER=$(cat <<'HTML'
+    <div class="note warn" style="margin-top:20px">
+      <span class="note-label">Личная копия — не передавать</span>
+      <p>В командах ниже подставлены рабочие setup key вашего аккаунта Netbird. Файл лежит за пределами репозитория намеренно: обезличенная версия с плейсхолдерами — в <code class="inl">adh-fleet/docs/guide.html</code>, делиться можно только ей.</p>
+    </div>
+HTML
+)
+printf '%s\n' "$BANNER" > "$OUT.banner"
+sed '/<\/header>/r '"$OUT.banner" "$OUT.tmp" > "$OUT"
+rm -f "$OUT.tmp" "$OUT.banner"
+
+subs=$(grep -c "$NB_KEY_ORIGIN\|$NB_KEY_REPLICA" "$OUT" || true)
+(( subs >= 2 )) || { echo "ключи не подставились — проверьте плейсхолдеры в $SRC" >&2; exit 1; }
+
+echo "личная копия: $OUT"
+echo "подстановок ключей: $subs"

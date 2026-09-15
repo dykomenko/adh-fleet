@@ -433,6 +433,11 @@
     <p>Адреса в оверлее назначает Netbird — их знать заранее не нужно, ноды обращаются друг к другу по именам.</p>
 
     <div class="note">
+      <span class="note-label">Номер ноды задаёт правило firewall, а не bind-адрес</span>
+      <p>AGH слушает <code class="inl">0.0.0.0:53</code>: интерфейс WireGuard появляется и исчезает при рестартах, и привязка к его адресу ломает старт AGH после перезагрузки. Из номера ноды выводится сеть клиентов, и именно она попадает в правило ufw — доступ к порту 53 открыт только оттуда.</p>
+    </div>
+
+    <div class="note">
       <span class="note-label">Почему сети обязательно разные</span>
       <p>Персональные правила в AGH привязаны к IP клиента. Если клиентские сети нод пересекутся, правила начнут срабатывать не на тех людях. Формула выше это исключает по построению.</p>
     </div>
@@ -457,9 +462,13 @@
       </li>
 
       <li class="step">
-        <h3>Создать setup key</h3>
-        <p>Тип — <strong>Reusable</strong>, по умолчанию предлагается одноразовый. В auto-assign groups указать <code class="inl">agh-replica</code>: тогда нода попадёт в нужную группу сама при первом подключении.</p>
-        <p>Срок жизни ключа выставьте с запасом — когда он истечёт, установка новых нод начнёт молча отваливаться.</p>
+        <h3>Создать два setup key</h3>
+        <p>Оба с auto-assign нужной группы — тогда группа назначается сама при первом подключении и в консоли руками ничего трогать не нужно:</p>
+        <ul class="plain">
+          <li>для origin — auto-assign <code class="inl">agh-origin</code>, хватит одноразового;</li>
+          <li>для реплик — тип <strong>Reusable</strong> (по умолчанию предлагается одноразовый), auto-assign <code class="inl">agh-replica</code>.</li>
+        </ul>
+        <p>Срок жизни ключа реплик выставьте с запасом — когда он истечёт, установка новых нод начнёт молча отваливаться.</p>
       </li>
 
       <li class="step">
@@ -510,12 +519,26 @@ netbird up --setup-key &lt;КЛЮЧ&gt; --hostname node01 --disable-dns</pre>
           <span class="note-label">--disable-dns обязателен</span>
           <p>И Netbird, и Tailscale по умолчанию правят <code class="inl">/etc/resolv.conf</code> на ноде. На DNS-сервере это ровно то, чего быть не должно. Точное имя флага сверьте через <code class="inl">netbird up --help</code> — между версиями оно переименовывалось.</p>
         </div>
-        <p>Группу <code class="inl">agh-origin</code> этой ноде назначьте в консоли вручную — setup key раздаёт <code class="inl">agh-replica</code>.</p>
+        <div class="note warn">
+          <span class="note-label">Если агент уже стоял</span>
+          <p>Установщик откажется работать («NetBird service is running»), а <code class="inl">netbird up</code> ответит «Already connected» и выйдет, <strong>не применив ни ключ, ни флаги</strong>. Проверьте <code class="inl">netbird status -d</code>: строки <code class="inl">Management</code>, <code class="inl">FQDN</code> и <code class="inl">Nameservers</code> покажут, куда нода подключена и не перехвачен ли DNS. Лечится <code class="inl">netbird down</code> и повторным <code class="inl">up</code>; если осталась в старом аккаунте — <code class="inl">rm -f /etc/netbird/config.json</code> при остановленной службе.</p>
+        </div>
+        <p>Теперь освобождаем порт 53:</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
 <pre>sudo sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' \
   /etc/systemd/resolved.conf
-sudo systemctl restart systemd-resolved</pre>
+sudo systemctl restart systemd-resolved
+sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf</pre>
+        </div>
+        <div class="note warn">
+          <span class="note-label">Третья строка обязательна</span>
+          <p>Без неё <code class="inl">/etc/resolv.conf</code> продолжает указывать на <code class="inl">127.0.0.53</code>, который после отключения stub-listener больше не слушает. Нода остаётся без резолвинга: перестают работать <code class="inl">apt</code>, <code class="inl">docker pull</code> и сам AGH.</p>
+        </div>
+        <p>Проверяем, что порт свободен — иначе мастер установки не даст выбрать «Все интерфейсы»:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>sudo ss -ulnp | grep ':53 ' || echo "порт 53 свободен"</pre>
         </div>
       </li>
 
@@ -551,11 +574,38 @@ sudo systemctl restart systemd-resolved</pre>
         </div>
         <p>На <code class="inl">http://localhost:3000</code> задаём:</p>
         <ul class="plain">
-          <li><strong>DNS-сервер</strong> — <code class="inl">10.101.0.1</code>, порт <code class="inl">53</code></li>
-          <li><strong>Веб-интерфейс</strong> — адрес ноды в оверлее (<code class="inl">netbird status</code> покажет), порт <code class="inl">3000</code></li>
+          <li><strong>Веб-интерфейс</strong> — интерфейс <code class="inl">wt0</code> с адресом <code class="inl">100.x.x.x</code>, это Netbird; порт <code class="inl">3000</code></li>
+          <li><strong>DNS-сервер</strong> — <strong>«Все интерфейсы»</strong>, порт <code class="inl">53</code></li>
           <li><strong>Логин и пароль админа</strong> — запомните пароль, он станет общим для всего парка</li>
         </ul>
         <p>Мастер слушает все интерфейсы, поэтому туннель на <code class="inl">127.0.0.1</code> здесь работает. После сохранения панель переедет на оверлейный адрес.</p>
+
+        <h3 style="margin-top:26px">Почему DNS на всех интерфейсах, а не на адресе VPN</h3>
+        <p>Привязка к адресу шлюза выглядит аккуратнее, но ломается на практике. Интерфейс WireGuard появляется и исчезает при рестартах: если туннель поднялся позже AGH, тот не стартует вовсе. А на свежем сервере, где VPN ещё не поднят, такого адреса в списке мастера просто нет.</p>
+        <p>Доступ ограничивает firewall, а не bind-адрес.</p>
+
+        <div class="note warn">
+          <span class="note-label">Правила — до того, как AGH начнёт слушать</span>
+          <p>С <code class="inl">0.0.0.0</code> нода становится открытым резолвером на публичном адресе. Такие находят за часы и начинают использовать для DNS-амплификации — прилетит abuse от хостера. Примените правила <strong>прежде</strong> чем завершите мастер.</p>
+        </div>
+
+        <p>Первой строкой разрешаем SSH, иначе <code class="inl">ufw enable</code> отрежет доступ к серверу:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
+<pre>sudo ufw allow 22/tcp
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow from 100.64.0.0/10 to any port 3000 proto tcp
+sudo ufw allow from 10.101.0.0/24 to any port 53
+sudo ufw enable</pre>
+        </div>
+        <p>Порт самого WireGuard (обычно <code class="inl">51820/udp</code>) добавите, когда будете его поднимать. Docker обычно пробивает ufw в обход правил, но здесь <code class="inl">network_mode: host</code> и публикации портов нет, поэтому ufw работает как ожидается.</p>
+
+        <p>Проверка снаружи, с другой машины — ответа быть <strong>не должно</strong>:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">любой другой хост</span></div>
+<pre>dig @ПУБЛИЧНЫЙ_IP_НОДЫ example.com +time=3</pre>
+        </div>
       </li>
 
       <li class="step">
@@ -574,7 +624,7 @@ sudo systemctl restart systemd-resolved</pre>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
 <pre>curl -fsSL "$REPO/scripts/make-template.sh" -o /tmp/mt.sh
-VPN_GW=10.101.0.1 sudo -E bash /tmp/mt.sh</pre>
+sudo bash /tmp/mt.sh</pre>
         </div>
         <p>Так вы не гадаете про <code class="inl">schema_version</code> и формат полей текущей версии AGH. Скрипт заменяет плейсхолдерами адреса <strong>и bcrypt-хеш пароля</strong>, а сам хеш печатает — это <code class="inl">AGH_PASS_HASH</code> для установки нод, положите его в <code class="inl">.env</code>.</p>
         <p>Готовый шаблон заберите на рабочую машину и закоммитьте в <code class="inl">node/AdGuardHome.yaml.tmpl</code>. Секретов в нём нет, поэтому лежать он может в публичном репозитории — именно из-за этого установка реплики сводится к одной команде.</p>
@@ -629,7 +679,7 @@ NUM="${1:?укажите номер ноды}"
 : "${NB_KEY:?не задан NB_KEY}"
 : "${AGH_PASS_HASH:?не задан AGH_PASS_HASH}"
 
-VPN_GW="10.$((100 + NUM)).0.1"
+CLIENT_NET="10.$((100 + NUM)).0.0/24"
 
 # 1. оверлей
 curl -fsSL https://pkgs.netbird.io/install.sh | sh
@@ -638,13 +688,24 @@ NB_IP="$(netbird status --json | jq -r .netbirdIp | cut -d/ -f1)"
 
 # 2. освобождаем 53
 sed -i 's/^#\?DNSStubListener=.*/DNSStubListener=no/' /etc/systemd/resolved.conf
+ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 systemctl restart systemd-resolved
 
-# 3. конфиг AGH из шаблона — мастер не запустится
+# 3. firewall — ДО запуска AGH, иначе нода несколько секунд
+#    стоит открытым резолвером на публичном адресе.
+#    Порт SSH берётся из того, что реально слушает sshd.
+for p in $(ss -tlnp | awk '/sshd/ {split($4,a,":"); print a[length(a)]}'); do
+  ufw allow "$p/tcp"
+done
+ufw allow from 100.64.0.0/10 to any port 3000 proto tcp
+ufw allow from "$CLIENT_NET" to any port 53
+ufw --force enable
+
+# 4. конфиг AGH из шаблона — мастер не запустится
 install -d /opt/adguardhome/conf /opt/adguardhome/work
 curl -fsSL "$REPO/node/docker-compose.yml"    -o /opt/adguardhome/docker-compose.yml
 curl -fsSL "$REPO/node/AdGuardHome.yaml.tmpl" -o /opt/adguardhome/AdGuardHome.yaml.tmpl
-sed -e "s|__VPN_GW__|$VPN_GW|g" -e "s|__NB_IP__|$NB_IP|g" \
+sed -e "s|__NB_IP__|$NB_IP|g" \
     -e "s|__PASS_HASH__|$AGH_PASS_HASH|g" \
     /opt/adguardhome/AdGuardHome.yaml.tmpl \
     &gt; /opt/adguardhome/conf/AdGuardHome.yaml
@@ -652,7 +713,7 @@ sed -e "s|__VPN_GW__|$VPN_GW|g" -e "s|__NB_IP__|$NB_IP|g" \
 # 4. поехали
 docker compose -f /opt/adguardhome/docker-compose.yml up -d
 
-echo "нода $(hostname -s): DNS $VPN_GW:53, панель $NB_IP:3000"
+echo "нода $(hostname -s): DNS 0.0.0.0:53 из $CLIENT_NET, панель $NB_IP:3000"
 echo "фильтры приедут в течение часа, либо сразу: sync-now.sh на origin"</pre>
     </div>
 
@@ -828,6 +889,7 @@ push "block-outside-dns"</pre>
       <li><label><input type="checkbox" id="k2b"><span>На странице Access Control не осталось правила <code class="inl">All → All</code></span></label></li>
       <li><label><input type="checkbox" id="k3"><span>На нодах <code class="inl">resolvectl status</code> не показывает вмешательства агента оверлея в DNS</span></label></li>
       <li><label><input type="checkbox" id="k4"><span><code class="inl">ss -ulnp | grep :53</code> показывает AdGuard Home, а не systemd-resolved</span></label></li>
+      <li><label><input type="checkbox" id="k4b"><span><code class="inl">getent hosts github.com</code> на ноде отвечает — resolv.conf не оставлен на мёртвом 127.0.0.53</span></label></li>
       <li><label><input type="checkbox" id="k5"><span>С хоста вне оверлея <code class="inl">dig @публичный_IP example.com</code> не отвечает ни на одной ноде</span></label></li>
       <li><label><input type="checkbox" id="k6"><span>Новая нода поднимается одной командой и мастер установки не показывает</span></label></li>
       <li><label><input type="checkbox" id="k6b"><span><code class="inl">sync-now.sh</code> на origin прогоняет синхронизацию немедленно</span></label></li>
