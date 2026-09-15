@@ -144,21 +144,38 @@ ssh -L 3000:127.0.0.1:3000 user@node01
 открытым резолвером на публичном адресе — такие находят за часы и начинают
 использовать для DNS-амплификации.
 
-Первой строкой разрешаем SSH, иначе `ufw enable` отрежет доступ к серверу:
+Ставится тем же скриптом, что и на репликах:
 
 ```bash
-sudo ufw allow 22/tcp
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow from 100.64.0.0/10 to any port 3000 proto tcp
-sudo ufw allow from 10.101.0.0/24 to any port 53
-sudo ufw enable
+echo 'CLIENT_NET=10.101.0.0/24' | sudo tee /etc/adh-firewall.conf
+curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-firewall.sh \
+  | sudo tee /usr/local/sbin/adh-firewall.sh > /dev/null
+curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-firewall.service \
+  | sudo tee /etc/systemd/system/adh-firewall.service > /dev/null
+sudo chmod 755 /usr/local/sbin/adh-firewall.sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now adh-firewall.service
 ```
 
-Порт самого WireGuard (обычно `51820/udp`) добавите, когда будете его поднимать.
+Чистый iptables, без ufw: на нодах его обычно нет, а тащить пакет ради
+трёх правил незачем.
 
-Docker обычно пробивает ufw в обход правил, но здесь `network_mode: host`
-и публикации портов нет, поэтому ufw работает как ожидается.
+**Политика `INPUT` при этом не меняется.** Скрипт заводит отдельную цепочку
+ровно для портов 53 и 3000 — правила уже настроенного на ноде VPN остаются
+нетронутыми, а SSH и прочие порты не затрагиваются вообще, так что отрезать
+себе доступ невозможно.
+
+Правила iptables живут в памяти ядра и после перезагрузки исчезли бы —
+юнит накатывает их заново при каждой загрузке, до старта docker.
+
+Закрывается и IPv6: клиенты ходят по IPv4, а без `ip6tables` нода осталась бы
+открытым резолвером по IPv6 — это легко упустить.
+
+Проверка правил:
+
+```bash
+sudo iptables -L ADH-INPUT -n -v
+```
 
 Проверка снаружи, с любой другой машины — ответа быть **не должно**:
 

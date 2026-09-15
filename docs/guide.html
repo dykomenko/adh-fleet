@@ -434,7 +434,7 @@
 
     <div class="note">
       <span class="note-label">Номер ноды задаёт правило firewall, а не bind-адрес</span>
-      <p>AGH слушает <code class="inl">0.0.0.0:53</code>: интерфейс WireGuard появляется и исчезает при рестартах, и привязка к его адресу ломает старт AGH после перезагрузки. Из номера ноды выводится сеть клиентов, и именно она попадает в правило ufw — доступ к порту 53 открыт только оттуда.</p>
+      <p>AGH слушает <code class="inl">0.0.0.0:53</code>: интерфейс WireGuard появляется и исчезает при рестартах, и привязка к его адресу ломает старт AGH после перезагрузки. Из номера ноды выводится сеть клиентов, и именно она попадает в правило iptables — доступ к порту 53 открыт только оттуда.</p>
     </div>
 
     <div class="note">
@@ -612,17 +612,29 @@ sudo ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf</pre>
           <p>С <code class="inl">0.0.0.0</code> нода становится открытым резолвером на публичном адресе. Такие находят за часы и начинают использовать для DNS-амплификации — прилетит abuse от хостера. Примените правила <strong>прежде</strong> чем завершите мастер.</p>
         </div>
 
-        <p>Первой строкой разрешаем SSH, иначе <code class="inl">ufw enable</code> отрежет доступ к серверу:</p>
+        <p>Ставится тем же скриптом, что и на репликах — чистый iptables, без ufw: на нодах его обычно нет, а тащить пакет ради трёх правил незачем.</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">node01</span></div>
-<pre>sudo ufw allow 22/tcp
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow from 100.64.0.0/10 to any port 3000 proto tcp
-sudo ufw allow from 10.101.0.0/24 to any port 53
-sudo ufw enable</pre>
+<pre>echo 'CLIENT_NET=10.101.0.0/24' | sudo tee /etc/adh-firewall.conf
+
+curl -fsSL $REPO/node/adh-firewall.sh \
+  | sudo tee /usr/local/sbin/adh-firewall.sh &gt; /dev/null
+curl -fsSL $REPO/node/adh-firewall.service \
+  | sudo tee /etc/systemd/system/adh-firewall.service &gt; /dev/null
+
+sudo chmod 755 /usr/local/sbin/adh-firewall.sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now adh-firewall.service</pre>
         </div>
-        <p>Порт самого WireGuard (обычно <code class="inl">51820/udp</code>) добавите, когда будете его поднимать. Docker обычно пробивает ufw в обход правил, но здесь <code class="inl">network_mode: host</code> и публикации портов нет, поэтому ufw работает как ожидается.</p>
+        <div class="note">
+          <span class="note-label">Политика INPUT не меняется</span>
+          <p>Скрипт заводит отдельную цепочку <code class="inl">ADH-INPUT</code> ровно для портов 53 и 3000. Правила уже настроенного на ноде VPN остаются нетронутыми, SSH и прочие порты не затрагиваются вообще — отрезать себе доступ невозможно.</p>
+          <p>Правила iptables живут в памяти ядра и после перезагрузки исчезли бы, поэтому юнит накатывает их заново при каждой загрузке, до старта docker. Закрывается и IPv6: клиенты ходят по IPv4, а без <code class="inl">ip6tables</code> нода осталась бы открытым резолвером по IPv6 — это легко упустить.</p>
+        </div>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">проверка правил</span></div>
+<pre>sudo iptables -L ADH-INPUT -n -v</pre>
+        </div>
 
         <p>Проверка снаружи, с другой машины — ответа быть <strong>не должно</strong>:</p>
         <div class="code">
@@ -717,13 +729,14 @@ systemctl restart systemd-resolved
 
 # 3. firewall — ДО запуска AGH, иначе нода несколько секунд
 #    стоит открытым резолвером на публичном адресе.
-#    Порт SSH берётся из того, что реально слушает sshd.
-for p in $(ss -tlnp | awk '/sshd/ {split($4,a,":"); print a[length(a)]}'); do
-  ufw allow "$p/tcp"
-done
-ufw allow from 100.64.0.0/10 to any port 3000 proto tcp
-ufw allow from "$CLIENT_NET" to any port 53
-ufw --force enable
+#    Отдельная цепочка только для 53 и 3000: политика INPUT
+#    не трогается, правила уже стоящего VPN остаются как были.
+printf 'CLIENT_NET=%s\n' "$CLIENT_NET" > /etc/adh-firewall.conf
+curl -fsSL "$REPO/node/adh-firewall.sh"      -o /usr/local/sbin/adh-firewall.sh
+curl -fsSL "$REPO/node/adh-firewall.service" -o /etc/systemd/system/adh-firewall.service
+chmod 755 /usr/local/sbin/adh-firewall.sh
+systemctl daemon-reload
+systemctl enable --now adh-firewall.service
 
 # 4. конфиг AGH из шаблона — мастер не запустится
 install -d /opt/adguardhome/conf /opt/adguardhome/work

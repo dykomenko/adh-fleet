@@ -117,32 +117,26 @@ if ss -ulnp 2>/dev/null | grep -q ':53 '; then
 fi
 
 # --- 3. firewall ------------------------------------------------------------
-# Делается ДО запуска AGH: иначе между стартом и правилами нода несколько
-# секунд стоит открытым резолвером на публичном адресе.
-if command -v ufw >/dev/null; then
-  # Порт SSH берём из того, что реально слушает sshd — на нестандартном
-  # порту иначе можно отрезать себе доступ включением ufw.
-  mapfile -t SSH_PORTS < <(
-    ss -tlnp 2>/dev/null | awk '/sshd/ {split($4,a,":"); print a[length(a)]}' | sort -u
-  )
-  [[ ${#SSH_PORTS[@]} -eq 0 ]] && SSH_PORTS=(22)
-  for p in "${SSH_PORTS[@]}"; do
-    echo "  ufw: разрешаю SSH на порту $p"
-    ufw allow "$p/tcp" >/dev/null
-  done
+# Делается ДО запуска AGH: иначе между стартом и появлением правил нода
+# несколько секунд стоит открытым резолвером на публичном адресе.
+#
+# Чистый iptables, без ufw: на нодах его обычно нет, а тащить пакет ради
+# трёх правил незачем. Политика INPUT не трогается — только отдельная
+# цепочка для портов 53 и 3000, чтобы не задеть правила уже стоящего VPN.
+command -v iptables >/dev/null || { echo "iptables не найден" >&2; exit 1; }
 
-  ufw allow from 100.64.0.0/10 to any port 3000 proto tcp >/dev/null
-  ufw allow from "$CLIENT_NET" to any port 53 >/dev/null
+printf 'CLIENT_NET=%s\n' "$CLIENT_NET" > /etc/adh-firewall.conf
+curl -fsSL "$REPO/node/adh-firewall.sh"      -o /usr/local/sbin/adh-firewall.sh
+curl -fsSL "$REPO/node/adh-firewall.service" -o /etc/systemd/system/adh-firewall.service
+chmod 755 /usr/local/sbin/adh-firewall.sh
 
-  if ! ufw status 2>/dev/null | grep -qi '^Status: active'; then
-    ufw --force enable >/dev/null
-  fi
-  echo "  ufw: 53 открыт только для $CLIENT_NET, 3000 — только для оверлея"
-else
-  echo "ВНИМАНИЕ: ufw не установлен." >&2
-  echo "AGH будет слушать 0.0.0.0:53 — закройте порт своим фаерволом," >&2
-  echo "иначе нода станет открытым резолвером." >&2
-fi
+systemctl daemon-reload
+systemctl enable --now adh-firewall.service
+
+# Правила живут в памяти ядра и после перезагрузки исчезли бы — юнит
+# накатывает их заново при каждой загрузке, до старта docker.
+systemctl is-enabled --quiet adh-firewall.service \
+  || { echo "юнит adh-firewall не включился — правила не переживут перезагрузку" >&2; exit 1; }
 
 # --- 4. конфиг из шаблона ---------------------------------------------------
 # Готовый AdGuardHome.yaml на месте => мастер установки не запускается.

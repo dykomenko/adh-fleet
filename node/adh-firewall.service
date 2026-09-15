@@ -1,0 +1,15 @@
+[Unit]
+Description=Ограничение доступа к портам AdGuard Home (53, 3000)
+Documentation=https://github.com/dykomenko/adh-fleet
+After=network-online.target
+Wants=network-online.target
+# Правила должны быть на месте раньше, чем AGH начнёт слушать
+Before=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/adh-firewall.sh
+
+[Install]
+WantedBy=multi-user.target
