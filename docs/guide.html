@@ -762,7 +762,19 @@ sudo bash /tmp/mt.sh</pre>
       <div class="code-bar"><span>bash</span><span class="where">WireGuard, OpenVPN</span></div>
 <pre>... install.sh HK01 10.107.0.0/24</pre>
     </div>
-    <p>Для Xray и Remnawave аргумент не нужен: клиенты адресов не получают, резолвит за них сам прокси с этой же машины, и localhost'а достаточно. Отдельной настройки Xray тоже не требуется — он берёт системный DNS ноды, и фильтрация распространяется на клиентов сама.</p>
+    <p>Для Xray и Remnawave аргумент не нужен: клиенты адресов не получают, резолвит за них сам прокси с этой же машины, и localhost'а достаточно.</p>
+
+    <h3>Xray: две обязательные половины</h3>
+    <p>Чтобы фильтрация дошла до клиентов, нужны обе. По отдельности не работает ни одна, а симптом при пропуске любой одинаковый: в журнале AGH только ваши собственные проверки и ни одного клиентского домена.</p>
+    <ul class="plain">
+      <li><strong>В конфиге Xray нет секции <code class="inl">dns</code>.</strong> Пока она есть, Xray резолвит встроенным резолвером через прописанные там серверы и системный не спрашивает вовсе. Удаляется в шаблоне конфига в панели Remnawave.</li>
+      <li><strong><code class="inl">/etc/resolv.conf</code> указывает на <code class="inl">127.0.0.1</code>.</strong> Это делает <code class="inl">install.sh</code> — обычным файлом, а не символьной ссылкой, иначе systemd-resolved перезапишет.</li>
+    </ul>
+    <div class="note warn">
+      <span class="note-label">Как отличить одну половину от другой</span>
+      <p>Захватом трафика при подключённом клиенте: <code class="inl">tcpdump -ni any 'port 53 or port 853' -c 40</code>.</p>
+      <p>Запросы на <code class="inl">127.0.0.1.53</code> — всё правильно. Запросы с публичного адреса ноды на <code class="inl">8.8.8.8</code>, <code class="inl">1.1.1.1</code> или порт <code class="inl">853</code> — в конфиге Xray осталась секция <code class="inl">dns</code>. Соединения на 853-й доказывают это сами: DoT умеет только встроенный резолвер Xray, системный — нет.</p>
+    </div>
 
     <h3>Вход в панель</h3>
     <p>Одинаково на origin и на любой реплике: обе слушают <code class="inl">0.0.0.0:3000</code>, доступ открыт только с localhost и с интерфейса оверлея. Поэтому — ssh-туннель:</p>
@@ -854,9 +866,10 @@ dig @127.0.0.1 doubleclick.net +short  # и режет рекламу</pre>
     <h3>Проверка со стороны клиента</h3>
     <p><code class="inl">dig</code> на ноде подтверждает только работу самого AGH. Дошла ли фильтрация до клиентов — вопрос отдельный, особенно с Xray, где путь идёт через системный резолвер ноды.</p>
     <p>Подключитесь к ноде как обычный пользователь и откройте <a href="https://adblock.turtlecute.org" style="color:var(--origin)">adblock.turtlecute.org</a> — страница прогоняет запросы к известным рекламным и трекерным доменам и показывает, сколько из них заблокировано.</p>
-    <div class="note">
-      <span class="note-label">Единственная сквозная проверка</span>
-      <p>Только она охватывает всю цепочку: клиент → туннель → резолвер ноды → AGH → фильтры. Всё остальное проверяет отдельные звенья, поэтому на новой ноде её стоит делать обязательно. Заодно она сразу покажет, если клиент ходит мимо вашего DNS.</p>
+    <div class="note warn">
+      <span class="note-label">Проверяйте с чистого устройства</span>
+      <p>Только эта проверка охватывает цепочку целиком: клиент → туннель → резолвер ноды → AGH → фильтры. Но локальный блокировщик в браузере или свой DNS на устройстве дадут ложноположительный результат — и нода будет выглядеть рабочей, не будучи ею.</p>
+      <p>Надёжнее смотреть журнал запросов в панели AGH: там видно, доходят ли до него домены, которые запрашивают клиенты, или только ваши собственные проверки.</p>
     </div>
   </section>
 
@@ -1141,7 +1154,8 @@ systemctl daemon-reload</pre>
       <li><label><input type="checkbox" id="k6b"><span><code class="inl">sync-now.sh</code> на origin прогоняет синхронизацию немедленно</span></label></li>
       <li><label><input type="checkbox" id="k7"><span>Тестовая нода появилась в <code class="inl">sync.yaml</code> сама, без правок на origin</span></label></li>
       <li><label><input type="checkbox" id="k8"><span>Заблокированный домен режется на выборочных нодах из разных концов списка</span></label></li>
-      <li><label><input type="checkbox" id="k8b"><span>Клиентом через туннель: <code class="inl">adblock.turtlecute.org</code> показывает блокировку — вся цепочка целиком</span></label></li>
+      <li><label><input type="checkbox" id="k8b"><span>В конфиге Xray нет секции <code class="inl">dns</code>, а <code class="inl">/etc/resolv.conf</code> — обычный файл с <code class="inl">127.0.0.1</code></span></label></li>
+      <li><label><input type="checkbox" id="k8c"><span>В журнале запросов AGH видны клиентские домены, а не только собственные проверки</span></label></li>
       <li><label><input type="checkbox" id="k9"><span>В клиентских конфигах прописан DNS своей ноды и только один</span></label></li>
       <li><label><input type="checkbox" id="k10"><span>Сделан бэкап <code class="inl">conf</code> и шаблона с origin-ноды</span></label></li>
     </ul>
