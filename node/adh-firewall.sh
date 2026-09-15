@@ -36,9 +36,19 @@ apply() {
   "$ipt" -N "$CHAIN" 2>/dev/null || "$ipt" -F "$CHAIN"
   "$ipt" -C INPUT -j "$CHAIN" 2>/dev/null || "$ipt" -I INPUT 1 -j "$CHAIN"
 
-  # Сам хост всегда может спросить свой резолвер
-  "$ipt" -A "$CHAIN" -p udp --dport 53 -s "$localhost_net" -j ACCEPT
-  "$ipt" -A "$CHAIN" -p tcp --dport 53 -s "$localhost_net" -j ACCEPT
+  # Localhost — всегда и на оба порта.
+  #
+  # Порт 53: сам хост должен уметь спросить свой резолвер.
+  #
+  # Порт 3000 не менее обязателен, хотя выглядит лишним:
+  #   - синхронизатор на origin ходит к своему AGH как http://127.0.0.1:3000,
+  #     и в host-сети контейнера это именно localhost;
+  #   - доступ к панели документирован через ssh -L, а проброшенный канал
+  #     приходит с 127.0.0.1.
+  # Без этого правила и то и другое молча упирается в DROP ниже.
+  "$ipt" -A "$CHAIN" -p udp --dport 53   -s "$localhost_net" -j ACCEPT
+  "$ipt" -A "$CHAIN" -p tcp --dport 53   -s "$localhost_net" -j ACCEPT
+  "$ipt" -A "$CHAIN" -p tcp --dport 3000 -s "$localhost_net" -j ACCEPT
 
   if [[ "$client_rules" == yes ]]; then
     # DNS — только клиентам этой ноды
