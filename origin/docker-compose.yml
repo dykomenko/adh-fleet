@@ -10,6 +10,12 @@ services:
     container_name: agh-sync
     network_mode: host
     restart: unless-stopped
+    # От root — чтобы прочитать sync.yaml с правами 600.
+    # В файле лежит пароль админа всего парка, и ослаблять права до 644
+    # ради непривилегированного пользователя контейнера — плохой размен:
+    # тогда пароль прочитает любой локальный пользователь.
+    # Изоляции тут всё равно немного: сеть у контейнера хостовая.
+    user: "0:0"
     volumes:
       - ./sync.yaml:/config/sync.yaml:ro
     command: run --config /config/sync.yaml
