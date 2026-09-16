@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Направляет резолвер контейнеров в host-сети на AdGuard Home.
+# Направляет резолвер контейнера VPN-ноды на AdGuard Home.
 #
 # Зачем: Docker при наследовании resolv.conf хоста выбрасывает loopback-адреса
 # и подставляет публичные — он не знает, что у контейнера сетевой namespace
@@ -8,34 +8,42 @@
 # и до AGH не доходит никогда, при том что на хосте resolv.conf указывает
 # на AGH, а секции dns в конфиге Xray нет. Видно только изнутри контейнера.
 #
-# Почему по host-сети, а не по имени папки: стек может лежать в /opt/remnanode,
-# /opt/rwnode, /opt/selfsteal или где угодно ещё. Признак «сеть хоста» точен
-# и не требует угадывать путь — каталог берётся из меток compose.
+# Что ищем: контейнер, который проксирует клиентский трафик. Опознаём по
+# ОБРАЗУ — он стабилен, в отличие от имени каталога: стек лежит в /opt/remnanode,
+# /opt/rwnode или /opt/selfsteal в зависимости от ноды. Сам каталог берётся
+# из меток compose, поэтому список путей не нужен.
+#
+# Кого НЕ трогаем: заглушку selfsteal — она отдаёт статику, клиентские домены
+# не резолвит, и перезапуск ради неё это лишний простой на боевой ноде.
+# Опознаём её по ОБРАЗУ (caddy), а не по имени: каталог узла тоже может
+# называться selfsteal, и исключение по имени убило бы настоящий контейнер.
 #
 # Существующий override не перезаписывается, а дополняется: на боевых нодах
 # он есть почти всегда, и затереть его значило бы потерять чужую настройку.
-# Правка точечная, комментарии и остальное содержимое сохраняются.
 #
-#   ADH_DNS_EXCLUDE='adguardhome'   контейнеры, которые пропустить (regex)
+#   ADH_DNS_MATCH     кого чинить (regex по «имя<TAB>образ»)
+#   ADH_DNS_EXCLUDE   кого пропустить, проверяется первым
 
 set -uo pipefail
 
-EXCLUDE="${ADH_DNS_EXCLUDE:-adguardhome}"
+MATCH="${ADH_DNS_MATCH:-remnawave/node|(^|[^a-z])(remnanode|rwnode)([^a-z]|$)}"
+EXCLUDE="${ADH_DNS_EXCLUDE:-adguardhome|caddy|nginx}"
 
 command -v docker >/dev/null || { echo "docker не найден" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "нужен python3 для правки override" >&2; exit 1; }
 
 declare -A svc_by_dir
-found=0
+targets=""
 
-for cid in $(docker ps -q); do
-  name="$(docker inspect "$cid" --format '{{.Name}}' | tr -d '/')"
-  [[ "$name" =~ $EXCLUDE ]] && continue
-  [[ "$(docker inspect "$cid" --format '{{.HostConfig.NetworkMode}}')" == host ]] || continue
-  found=1
+while IFS=$'\t' read -r name image; do
+  [[ -z "$name" ]] && continue
+  printf '%s\t%s\n' "$name" "$image" | grep -qEi "$EXCLUDE" && continue
+  printf '%s\t%s\n' "$name" "$image" | grep -qEi "$MATCH" || continue
 
-  dir="$(docker inspect "$cid" --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}')"
-  svc="$(docker inspect "$cid" --format '{{index .Config.Labels "com.docker.compose.service"}}')"
+  targets+="$name "
+
+  dir="$(docker inspect "$name" --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}')"
+  svc="$(docker inspect "$name" --format '{{index .Config.Labels "com.docker.compose.service"}}')"
 
   if [[ -z "$dir" || -z "$svc" ]]; then
     echo "  $name: поднят не через compose — задайте резолвер вручную" >&2
@@ -46,11 +54,13 @@ for cid in $(docker ps -q); do
     *" $svc "*) ;;
     *) svc_by_dir["$dir"]="${svc_by_dir[$dir]:-}$svc " ;;
   esac
-done
+done < <(docker ps --format '{{.Names}}\t{{.Image}}')
 
-if (( found == 0 )); then
-  echo "контейнеров в host-сети не найдено — настраивать нечего" >&2
-  exit 0
+if [[ -z "$targets" ]]; then
+  echo "контейнер VPN-ноды не найден (искали: $MATCH)." >&2
+  echo "Резолвер не настроен — клиенты фильтроваться НЕ будут." >&2
+  echo "Если у вас другой образ или имя, задайте ADH_DNS_MATCH." >&2
+  exit 1
 fi
 
 rc=0
@@ -63,7 +73,8 @@ import io, os, shutil, sys
 path, services = sys.argv[1], sys.argv[2:]
 BLOCK = ["    dns:", "      - 127.0.0.1"]
 
-if os.path.exists(path):
+existed = os.path.exists(path)
+if existed:
     shutil.copy2(path, path + ".bak-adh")
     lines = io.open(path, encoding="utf-8").read().split("\n")
 else:
@@ -72,55 +83,51 @@ else:
              "# подставляет публичные серверы вместо loopback хоста.",
              "services:"]
 
-def services_index(ls):
-    for i, l in enumerate(ls):
-        if l.rstrip() == "services:":
-            return i
-    return None
-
-si = services_index(lines)
+si = None
+for i, l in enumerate(lines):
+    if l.rstrip() == "services:":
+        si = i
+        break
 if si is None:
-    lines += ["services:"]
+    lines.append("services:")
     si = len(lines) - 1
 
-def service_line(ls, svc):
-    for i in range(si + 1, len(ls)):
-        if ls[i].strip() and not ls[i].startswith(" "):
-            break                      # вышли из services:
-        if ls[i].rstrip() == "  %s:" % svc:
+def service_line(svc):
+    for i in range(si + 1, len(lines)):
+        if lines[i].strip() and not lines[i].startswith(" "):
+            break
+        if lines[i].rstrip() == "  %s:" % svc:
             return i
     return None
 
-def block_end(ls, start):
-    for i in range(start + 1, len(ls)):
-        s = ls[i]
-        if s.strip() and not s.startswith("    "):
+def block_end(start):
+    for i in range(start + 1, len(lines)):
+        if lines[i].strip() and not lines[i].startswith("    "):
             return i
-    return len(ls)
+    return len(lines)
 
 changed = False
 for svc in services:
-    idx = service_line(lines, svc)
+    idx = service_line(svc)
     if idx is None:
-        end = block_end(lines, si) if si is not None else len(lines)
+        end = block_end(si)
         lines[end:end] = ["  %s:" % svc] + BLOCK
         changed = True
         continue
 
-    end = block_end(lines, idx)
-    body = lines[idx + 1:end]
+    body = lines[idx + 1:block_end(idx)]
     if any(l.strip().startswith("dns:") for l in body):
         if not any("127.0.0.1" in l for l in body):
-            sys.stderr.write("  %s: в override уже есть dns: без 127.0.0.1 — "
+            sys.stderr.write("  %s: в override уже задан чужой dns — "
                              "проверьте вручную\n" % svc)
             sys.exit(2)
-        continue                        # уже настроено, не трогаем
+        continue
     lines[idx + 1:idx + 1] = BLOCK
     changed = True
 
 if changed:
     io.open(path, "w", encoding="utf-8").write("\n".join(lines))
-    print("изменён" if os.path.exists(path + ".bak-adh") else "создан")
+    print("изменён" if existed else "создан")
 else:
     print("уже настроен")
 PY
@@ -137,13 +144,9 @@ done
 
 sleep 2
 
-# Проверяем по факту, а не по намерению
-for cid in $(docker ps -q); do
-  name="$(docker inspect "$cid" --format '{{.Name}}' | tr -d '/')"
-  [[ "$name" =~ $EXCLUDE ]] && continue
-  [[ "$(docker inspect "$cid" --format '{{.HostConfig.NetworkMode}}')" == host ]] || continue
-
-  if docker exec "$cid" cat /etc/resolv.conf 2>/dev/null | grep -q '127.0.0.1'; then
+# Проверяем по факту и только тех, кого чинили
+for name in $targets; do
+  if docker exec "$name" cat /etc/resolv.conf 2>/dev/null | grep -q '127.0.0.1'; then
     echo "  $name: резолвит через AGH"
   else
     echo "  $name: резолвит МИМО AGH — клиенты не фильтруются" >&2
