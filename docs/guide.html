@@ -543,9 +543,10 @@
     <p class="caption">Падение любой ноды задевает только её клиентов, у которых в этот момент всё равно нет туннеля.</p>
 
     <div class="note warn">
-      <span class="note-label">Xray: две обязательные половины</span>
-      <p>Чтобы фильтрация дошла до клиентов, нужны обе — по отдельности не работает ни одна, а симптом одинаковый: в журнале AGH только ваши собственные проверки и ни одного клиентского домена.</p>
-      <p><strong>1.</strong> В конфиге Xray <strong>нет секции <code class="inl">dns</code></strong>. Пока она есть, Xray резолвит встроенным резолвером через прописанные там серверы и системный не спрашивает вовсе. <strong>2.</strong> <code class="inl">/etc/resolv.conf</code> указывает на <code class="inl">127.0.0.1</code> — это делает <code class="inl">install.sh</code>.</p>
+      <span class="note-label">Xray: три условия</span>
+      <p>Чтобы фильтрация дошла до клиентов, должны совпасть все три. Нарушено любое — симптом одинаковый: в журнале AGH только ваши собственные проверки и ни одного клиентского домена.</p>
+      <p><strong>1.</strong> В конфиге Xray <strong>нет секции <code class="inl">dns</code></strong> — иначе он резолвит встроенным резолвером и системный не спрашивает вовсе. <strong>2.</strong> Резолвер <strong>контейнера</strong> указывает на AGH: Docker выбрасывает loopback-адреса при наследовании <code class="inl">resolv.conf</code> хоста и подставляет публичные. <strong>3.</strong> <code class="inl">/etc/resolv.conf</code> ноды указывает на <code class="inl">127.0.0.1</code>.</p>
+      <p>Первое делается руками в панели Remnawave, второе и третье — <code class="inl">install.sh</code>. Самое неочевидное — второе, видно только изнутри контейнера: <code class="inl">docker exec remnanode cat /etc/resolv.conf</code>.</p>
     </div>
 
     <details>
