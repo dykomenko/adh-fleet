@@ -311,38 +311,18 @@ if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
   fi
 fi
 
-# --- 7. резолвер контейнера RemnaNode ---------------------------------------
+# --- 7. резолвер контейнеров в host-сети ------------------------------------
 # Docker при наследовании resolv.conf хоста выбрасывает loopback-адреса
-# и подставляет публичные: он не знает, что у контейнера сетевой namespace
-# хоста и 127.0.0.1 здесь рабочий. В итоге Xray резолвит через 8.8.8.8
-# и до AGH не доходит никогда — при том, что на хосте resolv.conf указывает
-# на AGH, а секции dns в конфиге Xray нет.
+# и подставляет публичные. В итоге Xray резолвит через 8.8.8.8 и до AGH
+# не доходит никогда — при том, что на хосте resolv.conf указывает на AGH,
+# а секции dns в конфиге Xray нет. Видно только изнутри контейнера.
 #
-# Проверяется так:  docker exec remnanode cat /etc/resolv.conf
-#
-# Правим не их compose, а override-файл: исходник остаётся нетронутым,
-# Docker подмешивает override сам, откат — просто удалить файл.
-RN_DIR="${RN_DIR:-/opt/remnanode}"
-if [[ -f "$RN_DIR/docker-compose.yml" ]]; then
-  cat > "$RN_DIR/docker-compose.override.yml" <<'OVERRIDE'
-# Управляется install.sh из adh-fleet.
-# Docker выбрасывает loopback-адреса при наследовании resolv.conf хоста,
-# поэтому резолвер контейнера задаётся явно. В host-сети 127.0.0.1 —
-# это AdGuard Home на этой же машине.
-services:
-  remnanode:
-    dns:
-      - 127.0.0.1
-OVERRIDE
-  docker compose -f "$RN_DIR/docker-compose.yml" up -d --force-recreate remnanode
-
-  if docker exec remnanode cat /etc/resolv.conf 2>/dev/null | grep -q '127.0.0.1'; then
-    echo "резолвер контейнера RemnaNode направлен на AGH"
-  else
-    echo "ВНИМАНИЕ: контейнер RemnaNode резолвит мимо AGH — клиенты не фильтруются" >&2
-  fi
-fi
-
+# Логика вынесена в отдельный скрипт: она нужна и Ansible-роли, и здесь,
+# а дублировать её в двух местах значит однажды поправить только одно.
+curl -fsSL "$REPO/node/adh-container-dns.sh" -o /usr/local/sbin/adh-container-dns.sh
+chmod 755 /usr/local/sbin/adh-container-dns.sh
+echo "резолвер контейнеров:"
+/usr/local/sbin/adh-container-dns.sh || echo "  часть контейнеров осталась без AGH — см. выше" >&2
 
 echo
 echo "нода $NODE_NAME готова"
