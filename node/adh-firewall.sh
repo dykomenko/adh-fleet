@@ -85,4 +85,29 @@ apply iptables  127.0.0.0/8 yes
 # резолвером по IPv6, что легко упустить.
 apply ip6tables ::1/128     no
 
+# Netbird 0.79 перехватывает DNS на уровне пакетов: ставит в своей таблице
+# nftables правило dnat с 127.0.0.1:53 на свой резолвер (127.0.0.1:5053).
+# До AdGuard Home запросы тогда не доходят вовсе — он отвечает REFUSED,
+# выглядит это как «AGH сломался», хотя сам он исправен.
+#
+# Флаг --disable-dns от этого не спасает: в 0.79 правило ставится и при
+# DisableDNS=True. В 0.78 такой цепочки не было.
+#
+# Снимаем правило здесь, потому что юнит и так отрабатывает при каждой
+# загрузке — после netbird, но до старта docker.
+strip_netbird_dns_dnat() {
+  command -v nft >/dev/null || return 0
+  nft list chain ip netbird netbird-nat-output >/dev/null 2>&1 || return 0
+
+  local handles
+  handles="$(nft -a list chain ip netbird netbird-nat-output 2>/dev/null     | grep -E 'dport 53 .*dnat' | grep -oE 'handle [0-9]+$' | awk '{print $2}')"
+
+  local h
+  for h in $handles; do
+    nft delete rule ip netbird netbird-nat-output handle "$h" 2>/dev/null       && echo "netbird: снят перехват DNS (handle $h)"
+  done
+}
+
+strip_netbird_dns_dnat
+
 echo "firewall: 53 — с localhost${CLIENT_NET:+ и из $CLIENT_NET}, 3000 — с интерфейса $OVERLAY_IF"
