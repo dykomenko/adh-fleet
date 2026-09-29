@@ -295,7 +295,16 @@ if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
     # указывает на каталог systemd-resolved, содержимое перезапишется.
     cp -a /etc/resolv.conf /etc/resolv.conf.adh-backup 2>/dev/null || true
     rm -f /etc/resolv.conf
-    printf 'nameserver 127.0.0.1\noptions timeout:2 attempts:2\n' > /etc/resolv.conf
+    # Запасной резолвер обязателен: с единственным 127.0.0.1 падение AGH
+    # оставляет ноду без DNS целиком — клиент проходит REALITY, сервер
+    # принимает соединение и не может отрезолвить адрес назначения.
+    # Опрашиваются по порядку, поэтому при живом AGH всё идёт через фильтры.
+    # Пустой AGH_RESOLV_FALLBACK возвращает fail-closed поведение.
+    {
+      echo 'nameserver 127.0.0.1'
+      [[ -n "${AGH_RESOLV_FALLBACK-1.1.1.1}" ]] && echo "nameserver ${AGH_RESOLV_FALLBACK-1.1.1.1}"
+      echo 'options timeout:1 attempts:1'
+    } > /etc/resolv.conf
 
     if getent hosts example.com >/dev/null 2>&1; then
       echo "системный резолвер переключён на AGH"
