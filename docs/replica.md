@@ -193,7 +193,10 @@ cat /etc/resolv.conf
 
 ```bash
 rm -f /etc/resolv.conf
-printf 'nameserver 127.0.0.1\noptions timeout:2 attempts:2\n' > /etc/resolv.conf
+printf 'nameserver 127.0.0.1
+nameserver 1.1.1.1
+options timeout:1 attempts:1
+' > /etc/resolv.conf
 getent hosts example.com
 ```
 
