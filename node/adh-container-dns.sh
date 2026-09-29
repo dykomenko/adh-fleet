@@ -23,11 +23,16 @@
 #
 #   ADH_DNS_MATCH     кого чинить (regex по «имя<TAB>образ»)
 #   ADH_DNS_EXCLUDE   кого пропустить, проверяется первым
+#   ADH_DNS_FALLBACK  запасной резолвер на случай падения AGH (пусто = без него)
 
 set -uo pipefail
 
 MATCH="${ADH_DNS_MATCH:-remnawave/node|(^|[^a-z])(remnanode|rwnode)([^a-z]|$)}"
 EXCLUDE="${ADH_DNS_EXCLUDE:-adguardhome|caddy|nginx}"
+
+# Запасной резолвер на случай падения AGH. Пустая строка = fail-closed:
+# нода перестанет работать вместе с AGH, зато фильтрация не потечёт никогда.
+FALLBACK="${ADH_DNS_FALLBACK:-1.1.1.1}"
 
 command -v docker >/dev/null || { echo "docker не найден" >&2; exit 1; }
 command -v python3 >/dev/null || { echo "нужен python3 для правки override" >&2; exit 1; }
@@ -67,11 +72,20 @@ rc=0
 for dir in "${!svc_by_dir[@]}"; do
   services="${svc_by_dir[$dir]}"
 
-  if ! python3 - "$dir/docker-compose.override.yml" $services <<'PY'
+  if ! python3 - "$dir/docker-compose.override.yml" "$FALLBACK" $services <<'PY'
 import io, os, shutil, sys
 
-path, services = sys.argv[1], sys.argv[2:]
-BLOCK = ["    dns:", "      - 127.0.0.1"]
+path, fallback, services = sys.argv[1], sys.argv[2], sys.argv[3:]
+FALLBACK = fallback
+# Запасной резолвер обязателен. С единственным 127.0.0.1 падение AGH
+# означает, что у Xray не остаётся DNS вообще: клиент проходит REALITY,
+# сервер принимает соединение и не может отрезолвить адрес назначения —
+# для клиента это «VPN подключен, но ничего не грузится».
+#
+# Опрашиваются по порядку, так что при живом AGH весь трафик идёт через
+# фильтры. timeout:1 attempts:1 — чтобы падение стоило секунды, а не пяти.
+BLOCK = ["    dns:", "      - 127.0.0.1", "      - " + FALLBACK,
+         "    dns_opt:", "      - timeout:1", "      - attempts:1"]
 
 existed = os.path.exists(path)
 if existed:
@@ -115,15 +129,32 @@ for svc in services:
         changed = True
         continue
 
-    body = lines[idx + 1:block_end(idx)]
-    if any(l.strip().startswith("dns:") for l in body):
-        if not any("127.0.0.1" in l for l in body):
-            sys.stderr.write("  %s: в override уже задан чужой dns — "
-                             "проверьте вручную\n" % svc)
-            sys.exit(2)
+    bend = block_end(idx)
+    body = lines[idx + 1:bend]
+
+    if not any(l.strip().startswith("dns:") for l in body):
+        lines[idx + 1:idx + 1] = BLOCK
+        changed = True
         continue
-    lines[idx + 1:idx + 1] = BLOCK
-    changed = True
+
+    # dns: уже есть — разбираем, наш он или чужой
+    if not any("127.0.0.1" in l for l in body):
+        sys.stderr.write("  %s: в override задан чужой dns — проверьте вручную\n" % svc)
+        sys.exit(2)
+
+    # Ноды, поставленные ранней версией, имеют единственный 127.0.0.1.
+    # Дописываем запасной резолвер, иначе падение AGH снова положит ноду.
+    if FALLBACK and not any(FALLBACK in l for l in body):
+        for i in range(idx + 1, bend):
+            if "127.0.0.1" in lines[i]:
+                lines[i + 1:i + 1] = ["      - " + FALLBACK]
+                changed = True
+                break
+
+    if not any(l.strip().startswith("dns_opt:") for l in lines[idx + 1:block_end(idx)]):
+        bend = block_end(idx)
+        lines[bend:bend] = ["    dns_opt:", "      - timeout:1", "      - attempts:1"]
+        changed = True
 
 if changed:
     io.open(path, "w", encoding="utf-8").write("\n".join(lines))
