@@ -354,6 +354,44 @@ netbird up --setup-key "$NB_KEY_REPLICA" --hostname HK01 \
 </details>
 
 <details>
+<summary><b>AGH отвечает REFUSED на все запросы</b></summary>
+
+Netbird 0.79 перехватывает DNS на уровне пакетов. В его таблице nftables
+появляется цепочка с правилом:
+
+```
+udp dport 53 ip daddr 127.0.0.1 dnat to 127.0.0.1:5053
+```
+
+Запросы к `127.0.0.1:53` уходят в резолвер самого netbird, а не в AGH, и тот
+отказывает всему чужому. Выглядит как «AGH сломался», хотя он исправен:
+на любом другом адресе или порту отвечает нормально.
+
+**`--disable-dns` от этого не спасает** — правило ставится и при
+`DisableDNS=True`. В 0.78 такой цепочки не было, поэтому необновлённые ноды
+работают, а обновлённые нет.
+
+Признак, отличающий от всего остального:
+
+```bash
+dig @127.0.0.1 google.com +short   # REFUSED
+dig @127.0.0.2 google.com +short   # отвечает
+```
+
+Правило ловит только `127.0.0.1`, поэтому запрос к `127.0.0.2` или `::1`
+проходит. Снимается юнитом `adh-firewall`, он делает это при каждой загрузке:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-firewall.sh   -o /usr/local/sbin/adh-firewall.sh
+chmod 755 /usr/local/sbin/adh-firewall.sh
+systemctl restart adh-firewall.service
+```
+
+Контейнеры при этом не трогаются.
+
+</details>
+
+<details>
 <summary><b>Синхронизатор пишет 401 Unauthorized</b></summary>
 
 Учётки разошлись: на реплике лежит хеш не от того пароля, что в `admin.pass`

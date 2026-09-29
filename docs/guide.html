@@ -536,7 +536,7 @@
           <text x="28" y="226" fill="var(--origin)" font-weight="500">sync раз в час →</text>
           <path d="M 140 222 L 596 222" stroke="var(--origin)" stroke-width="1.5" stroke-dasharray="5 4" fill="none"/>
           <path d="M 596 222 l -7 -4 l 0 8 z" fill="var(--origin)"/>
-          <text x="28" y="244" fill="var(--ink-faint)">список реплик пересобирается сам — новая нода подхватывается без правок на origin</text>
+          <text x="28" y="244" fill="var(--ink-faint)">список реплик пересобирается каждые 15 минут — новая нода подхватывается сама</text>
         </g>
       </svg>
     </div>
@@ -802,6 +802,27 @@ netbird up --management-url https://api.netbird.io:443 \
       </div>
     </details>
 
+    <details>
+      <summary>AGH отвечает REFUSED на все запросы</summary>
+      <div class="details-body">
+        <p>Netbird 0.79 перехватывает DNS на уровне пакетов. В его таблице nftables появляется правило <code class="inl">udp dport 53 ip daddr 127.0.0.1 dnat to 127.0.0.1:5053</code> — запросы уходят в резолвер самого агента, а не в AGH, и тот отказывает всему чужому. Выглядит как «AGH сломался», хотя он исправен.</p>
+        <p><strong>Признак, отличающий от всего остального:</strong> правило ловит только <code class="inl">127.0.0.1</code>, поэтому запрос к другому локальному адресу проходит.</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
+<pre>dig @127.0.0.1 google.com +short   # REFUSED
+dig @127.0.0.2 google.com +short   # отвечает</pre>
+        </div>
+        <p><code class="inl">--disable-dns</code> не спасает: правило ставится и при <code class="inl">DisableDNS=True</code>. В 0.78 такой цепочки не было, поэтому необновлённые ноды работают, а обновлённые нет.</p>
+        <p>Снимает юнит <code class="inl">adh-firewall</code> при каждой загрузке. Обновить на уже стоящей ноде — контейнеры не трогаются:</p>
+        <div class="code">
+          <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
+<pre>RAW=https://raw.githubusercontent.com/dykomenko/adh-fleet/main
+curl -fsSL "$RAW/node/adh-firewall.sh" -o /usr/local/sbin/adh-firewall.sh
+chmod 755 /usr/local/sbin/adh-firewall.sh
+systemctl restart adh-firewall.service</pre>
+        </div>
+      </div>
+    </details>
     <details>
       <summary>Синхронизатор пишет 401 Unauthorized</summary>
       <div class="details-body">
