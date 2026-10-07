@@ -295,13 +295,21 @@ if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
     # указывает на каталог systemd-resolved, содержимое перезапишется.
     cp -a /etc/resolv.conf /etc/resolv.conf.adh-backup 2>/dev/null || true
     rm -f /etc/resolv.conf
-    # Запасной резолвер обязателен: с единственным 127.0.0.1 падение AGH
-    # оставляет ноду без DNS целиком — клиент проходит REALITY, сервер
-    # принимает соединение и не может отрезолвить адрес назначения.
-    # Опрашиваются по порядку, поэтому при живом AGH всё идёт через фильтры.
-    # Пустой AGH_RESOLV_FALLBACK возвращает fail-closed поведение.
+    # Резолвер указывает на адрес docker-моста, а не на 127.0.0.1.
+    #
+    # Docker при наследовании resolv.conf хоста выбрасывает loopback-адреса
+    # и подставляет публичные, а адрес моста пропускает как есть. Значит
+    # контейнеры — и bridge, и host — получают AGH сами, и compose-файлы
+    # трогать не нужно. Это принципиально: override у remnanode принадлежит
+    # стороннему инструменту (configure-remnanode-tls-mount), который
+    # генерирует его с нуля и стёр бы любую нашу правку.
+    #
+    # Запасной резолвер обязателен: с единственным адресом падение AGH
+    # оставляет ноду без DNS целиком.
+    DOCKER_GW="$(ip -4 addr show docker0 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}')"
+    DOCKER_GW="${DOCKER_GW:-127.0.0.1}"
     {
-      echo 'nameserver 127.0.0.1'
+      echo "nameserver $DOCKER_GW"
       [[ -n "${AGH_RESOLV_FALLBACK-1.1.1.1}" ]] && echo "nameserver ${AGH_RESOLV_FALLBACK-1.1.1.1}"
       echo 'options timeout:1 attempts:1'
     } > /etc/resolv.conf
@@ -320,18 +328,7 @@ if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
   fi
 fi
 
-# --- 7. резолвер контейнеров в host-сети ------------------------------------
-# Docker при наследовании resolv.conf хоста выбрасывает loopback-адреса
-# и подставляет публичные. В итоге Xray резолвит через 8.8.8.8 и до AGH
-# не доходит никогда — при том, что на хосте resolv.conf указывает на AGH,
-# а секции dns в конфиге Xray нет. Видно только изнутри контейнера.
-#
-# Логика вынесена в отдельный скрипт: она нужна и Ansible-роли, и здесь,
-# а дублировать её в двух местах значит однажды поправить только одно.
-curl -fsSL "$REPO/node/adh-container-dns.sh" -o /usr/local/sbin/adh-container-dns.sh
-chmod 755 /usr/local/sbin/adh-container-dns.sh
-echo "резолвер контейнеров:"
-/usr/local/sbin/adh-container-dns.sh || echo "  часть контейнеров осталась без AGH — см. выше" >&2
+echo "  часть контейнеров осталась без AGH — см. выше" >&2
 
 echo
 echo "нода $NODE_NAME готова"

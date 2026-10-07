@@ -28,6 +28,9 @@ CONF=/etc/adh-firewall.conf
 # где туннель раздаёт адреса — WireGuard, OpenVPN.
 CLIENT_NET="${CLIENT_NET:-}"
 
+# Диапазон docker-сетей. Пусто — контейнеры к AGH не достучатся.
+DOCKER_NET="${DOCKER_NET:-172.16.0.0/12}"
+
 # Панель разрешаем по ИНТЕРФЕЙСУ оверлея, а не по диапазону адресов.
 #
 # Netbird раздаёт адреса шире, чем 100.64.0.0/10: в одном парке встречаются
@@ -63,6 +66,16 @@ apply() {
   "$ipt" -A "$CHAIN" -p udp --dport 53   -s "$localhost_net" -j ACCEPT
   "$ipt" -A "$CHAIN" -p tcp --dport 53   -s "$localhost_net" -j ACCEPT
   "$ipt" -A "$CHAIN" -p tcp --dport 3000 -s "$localhost_net" -j ACCEPT
+
+  # Docker-сети. Контейнеры обращаются к AGH по адресу моста (172.17.0.1),
+  # потому что Docker выбрасывает loopback при наследовании resolv.conf хоста,
+  # а адрес моста пропускает. Так резолвер достаётся контейнерам сам,
+  # и compose-файлы трогать не нужно — это важно, потому что override
+  # у remnanode принадлежит стороннему инструменту и перезаписывается им.
+  if [[ "$ipt" == iptables && -n "$DOCKER_NET" ]]; then
+    "$ipt" -A "$CHAIN" -p udp --dport 53 -s "$DOCKER_NET" -j ACCEPT
+    "$ipt" -A "$CHAIN" -p tcp --dport 53 -s "$DOCKER_NET" -j ACCEPT
+  fi
 
   if [[ "$client_rules" == yes && -n "$CLIENT_NET" ]]; then
     # DNS — только клиентам этой ноды
@@ -110,4 +123,4 @@ strip_netbird_dns_dnat() {
 
 strip_netbird_dns_dnat
 
-echo "firewall: 53 — с localhost${CLIENT_NET:+ и из $CLIENT_NET}, 3000 — с интерфейса $OVERLAY_IF"
+echo "firewall: 53 — с localhost, из ${DOCKER_NET}${CLIENT_NET:+ и из $CLIENT_NET}; 3000 — с интерфейса $OVERLAY_IF"
