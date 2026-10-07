@@ -558,6 +558,11 @@
 <pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-override-cleanup.sh)</pre>
       </div>
       <p>Нашу секцию он убирает, остальной файл сохраняет; файл, который был целиком нашим, удаляет. Чужую секцию <code class="inl">dns</code> не трогает — сообщает и оставляет решать вам. <code class="inl">DRY_RUN=1</code> — посмотреть, ничего не меняя.</p>
+      <p>А если в контейнере адрес не тот, что на хосте, — он создан раньше правки: Docker формирует <code class="inl">resolv.conf</code> контейнера один раз, при создании. Пересоздавать не нужно, правка на месте, контейнер продолжает работать:</p>
+      <div class="code">
+        <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
+<pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-live-resolv.sh)</pre>
+      </div>
     </div>
 
     <details>
