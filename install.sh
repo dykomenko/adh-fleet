@@ -373,6 +373,16 @@ if curl -fsSL "$REPO/node/adh-override-cleanup.sh" -o /tmp/adh-override-cleanup.
   rm -f /tmp/adh-override-cleanup.sh
 fi
 
+# --- 8. резолвер уже запущенных контейнеров ---------------------------------
+# Docker формирует resolv.conf контейнера при создании и дальше его не меняет.
+# На ноде, где контейнеры подняты раньше установки AGH, правка resolv.conf
+# хоста до них не доходит — они продолжают резолвить мимо фильтров, и это
+# выглядит как «не применилось». Правим на месте, без пересоздания.
+if curl -fsSL "$REPO/node/adh-live-resolv.sh" -o /tmp/adh-live-resolv.sh; then
+  bash /tmp/adh-live-resolv.sh || true
+  rm -f /tmp/adh-live-resolv.sh
+fi
+
 echo
 echo "нода $NODE_NAME готова"
 if [[ -n "$CLIENT_NET" ]]; then
