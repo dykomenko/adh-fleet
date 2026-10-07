@@ -212,8 +212,24 @@ fi
 # цепочка для портов 53 и 3000, чтобы не задеть правила уже стоящего VPN.
 command -v iptables >/dev/null || { echo "iptables не найден" >&2; exit 1; }
 
+# Сети docker, из которых разрешаем 53-й порт. Контейнеры обращаются к AGH
+# по адресу моста, и запросы приходят с адресов этих сетей: у контейнера
+# с network_mode: host это сам адрес моста, у bridge-контейнера — соседний.
+#
+# Значение пишется в конфиг, а не определяется при каждом применении правил:
+# юнит отрабатывает ДО старта docker, и после перезагрузки интерфейсов ещё нет.
+# Стандартный пул 172.16.0.0/12 берём всегда, обнаруженные сети добавляем
+# сверху — на случай, если docker настроен на свой диапазон адресов.
+ADH_DOCKER_NET="172.16.0.0/12"
+while read -r net; do
+  [[ -n "$net" ]] || continue
+  [[ "$net" =~ ^172\.(1[6-9]|2[0-9]|3[01])\. ]] && continue
+  ADH_DOCKER_NET="$ADH_DOCKER_NET $net"
+done < <(ip -4 -o addr show 2>/dev/null | awk '$2 ~ /^(docker|br-)/ {print $4}')
+
 printf 'CLIENT_NET=%s\n' "$CLIENT_NET" > /etc/adh-firewall.conf
 printf 'OVERLAY_IF=%s\n' "${OVERLAY_IF:-wt0}" >> /etc/adh-firewall.conf
+printf 'DOCKER_NET="%s"\n' "$ADH_DOCKER_NET" >> /etc/adh-firewall.conf
 curl -fsSL "$REPO/node/adh-firewall.sh"      -o /usr/local/sbin/adh-firewall.sh
 curl -fsSL "$REPO/node/adh-firewall.service" -o /etc/systemd/system/adh-firewall.service
 chmod 755 /usr/local/sbin/adh-firewall.sh
@@ -306,8 +322,16 @@ if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
     #
     # Запасной резолвер обязателен: с единственным адресом падение AGH
     # оставляет ноду без DNS целиком.
-    DOCKER_GW="$(ip -4 addr show docker0 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}')"
-    DOCKER_GW="${DOCKER_GW:-127.0.0.1}"
+    DOCKER_GW="$(ip -4 addr show docker0 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' | head -1)"
+    # docker0 может называться иначе или ещё не подняться — спросим сам docker
+    [[ -n "$DOCKER_GW" ]] || DOCKER_GW="$(docker network inspect bridge \
+      -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null)"
+    # Совсем без моста остаётся loopback: хост резолвить будет, контейнеры нет —
+    # Docker выбрасывает loopback при наследовании. Скажем об этом вслух.
+    if [[ -z "$DOCKER_GW" ]]; then
+      DOCKER_GW=127.0.0.1
+      echo "адрес docker-моста не определён — контейнеры останутся без AGH" >&2
+    fi
     {
       echo "nameserver $DOCKER_GW"
       [[ -n "${AGH_RESOLV_FALLBACK-1.1.1.1}" ]] && echo "nameserver ${AGH_RESOLV_FALLBACK-1.1.1.1}"
@@ -328,7 +352,18 @@ if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
   fi
 fi
 
-echo "  часть контейнеров осталась без AGH — см. выше" >&2
+# --- 7. уборка наследия прежнего подхода ------------------------------------
+# Раньше резолвер контейнерам задавался через docker-compose.override.yml.
+# Этот файл принадлежит configure-remnanode-tls-mount (сертификаты Hysteria2):
+# чужой он трогать отказывается, а свой генерирует заново поверх. То есть наша
+# правка либо ломала его, либо исчезала сама. Теперь compose не участвует
+# вовсе, и остатки прежней схемы нужно снять — иначе они продолжат мешать.
+#
+# Контейнеры при этом не перезапускаются: меняются только файлы.
+if curl -fsSL "$REPO/node/adh-override-cleanup.sh" -o /tmp/adh-override-cleanup.sh; then
+  bash /tmp/adh-override-cleanup.sh || true
+  rm -f /tmp/adh-override-cleanup.sh
+fi
 
 echo
 echo "нода $NODE_NAME готова"

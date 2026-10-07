@@ -44,6 +44,7 @@ Origin настраивается один раз — [docs/origin.md](docs/orig
 | `install.sh` | новая нода | ставит AGH одной командой |
 | `node/docker-compose.yml` | все ноды | AGH, одинаков везде |
 | `node/AdGuardHome.yaml.tmpl` | все ноды | конфиг с плейсхолдерами |
+| `node/adh-override-cleanup.sh` | нода | снимает наследие правок compose |
 | `origin/setup-origin.sh` | origin | разворачивает синхронизатор |
 | `origin/gen-sync.sh` | origin, крон | собирает `sync.yaml` по группе в оверлее |
 | `origin/sync-now.sh` | origin, руками | немедленный прогон синхронизации |
@@ -80,14 +81,25 @@ AGH слушает `0.0.0.0:53`: интерфейс туннеля появля�
 получают AGH сами, и **compose-файлы трогать не нужно**.
 
 Это важно, потому что `docker-compose.override.yml` у `remnanode` принадлежит
-стороннему инструменту `configure-remnanode-tls-mount`: он генерирует файл
-с нуля и стирает любые чужие правки, а чужой файл вообще отказывается
-трогать. Любая попытка прописать `dns:` туда — конфликт.
+стороннему инструменту `configure-remnanode-tls-mount` (сертификаты Hysteria2),
+и правка `dns:` там конфликтует в обе стороны: чужой файл инструмент трогать
+отказывается — `Override is not managed by this script`, и TLS-часть не ставится
+вовсе, — а свой генерирует с нуля поверх, стирая нашу секцию. Третьим файлом
+это не решается: compose запускается с явными `-f`.
 
 Проверка:
 
 ```bash
 docker exec remnanode cat /etc/resolv.conf
+```
+
+Должно совпадать с хостовым `/etc/resolv.conf`. Наследие прежнего подхода,
+когда `dns` прописывался в override, снимает отдельный скрипт — `install.sh`
+вызывает его сам, но на уже стоящей ноде запускается и отдельно, контейнеры
+при этом не перезапускаются:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-override-cleanup.sh)
 ```
 
 ## Проверка ноды

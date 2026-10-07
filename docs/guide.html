@@ -543,10 +543,21 @@
     <p class="caption">Падение любой ноды задевает только её клиентов, у которых в этот момент всё равно нет туннеля.</p>
 
     <div class="note warn">
-      <span class="note-label">Xray: три условия</span>
-      <p>Чтобы фильтрация дошла до клиентов, должны совпасть все три. Нарушено любое — симптом одинаковый: в журнале AGH только ваши собственные проверки и ни одного клиентского домена.</p>
-      <p><strong>1.</strong> В конфиге Xray <strong>нет секции <code class="inl">dns</code></strong> — иначе он резолвит встроенным резолвером и системный не спрашивает вовсе. <strong>2.</strong> Резолвер <strong>контейнера</strong> указывает на AGH: Docker выбрасывает loopback-адреса при наследовании <code class="inl">resolv.conf</code> хоста и подставляет публичные. <strong>3.</strong> <code class="inl">/etc/resolv.conf</code> ноды указывает на <code class="inl">127.0.0.1</code>.</p>
-      <p>Первое делается руками в панели Remnawave, второе и третье — <code class="inl">install.sh</code>. Самое неочевидное — второе, видно только изнутри контейнера: <code class="inl">docker exec remnanode cat /etc/resolv.conf</code>.</p>
+      <span class="note-label">Xray: два условия</span>
+      <p>Чтобы фильтрация дошла до клиентов, должны совпасть оба. Нарушено любое — симптом одинаковый: в журнале AGH только ваши собственные проверки и ни одного клиентского домена.</p>
+      <p><strong>1.</strong> В конфиге Xray <strong>нет секции <code class="inl">dns</code></strong> — иначе он резолвит встроенным резолвером и системный не спрашивает вовсе. Делается руками в панели Remnawave, это единственный ручной шаг. <strong>2.</strong> <code class="inl">/etc/resolv.conf</code> ноды указывает на <strong>адрес docker-моста</strong> (обычно <code class="inl">172.17.0.1</code>), а не на <code class="inl">127.0.0.1</code>. Делает <code class="inl">install.sh</code>.</p>
+      <p>Второе устроено так не случайно: Docker при наследовании <code class="inl">resolv.conf</code> хоста <strong>выбрасывает loopback-адреса</strong> и подставляет публичные, а адрес моста пропускает как есть. Поэтому AGH достаётся контейнерам сам, и <strong>compose трогать не нужно</strong>. Проверка — <code class="inl">docker exec remnanode cat /etc/resolv.conf</code>, должно совпадать с хостовым.</p>
+    </div>
+
+    <div class="note">
+      <span class="note-label">Почему не через docker-compose.override.yml</span>
+      <p>Файл <code class="inl">docker-compose.override.yml</code> рядом с remnanode принадлежит стороннему инструменту <code class="inl">configure-remnanode-tls-mount</code> (сертификаты Hysteria2), и правка <code class="inl">dns</code> там конфликтует в обе стороны: чужой файл инструмент трогать отказывается (<code class="inl">Override is not managed by this script</code>) и TLS-часть не ставится, а свой генерирует с нуля поверх — и наша секция исчезает. Третий файл не помогает: compose запускается с явными <code class="inl">-f</code>.</p>
+      <p>Поэтому резолвер отдаётся через <code class="inl">resolv.conf</code> хоста. Наследие прежнего подхода снимает отдельный скрипт — <code class="inl">install.sh</code> вызывает его сам, контейнеры не перезапускаются:</p>
+      <div class="code">
+        <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
+<pre>bash &lt;(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/node/adh-override-cleanup.sh)</pre>
+      </div>
+      <p>Нашу секцию он убирает, остальной файл сохраняет; файл, который был целиком нашим, удаляет. Чужую секцию <code class="inl">dns</code> не трогает — сообщает и оставляет решать вам. <code class="inl">DRY_RUN=1</code> — посмотреть, ничего не меняя.</p>
     </div>
 
     <details>
@@ -769,10 +780,10 @@ curl -m 5 -o /dev/null -w "localhost: %{http_code}\n" http://127.0.0.1:3000/</pr
 timeout 25 tcpdump -ni any 'port 53 or port 853' -c 40</pre>
         </div>
         <ul class="plain">
-          <li>запросы на <code class="inl">127.0.0.1.53</code> — всё правильно;</li>
+          <li>запросы на <code class="inl">172.17.0.1.53</code> — всё правильно;</li>
           <li>запросы с публичного адреса ноды на <code class="inl">8.8.8.8</code>, <code class="inl">1.1.1.1</code> или порт <code class="inl">853</code> — в конфиге Xray осталась секция <code class="inl">dns</code>. Соединения на 853-й доказывают это сами: DoT умеет только встроенный резолвер Xray, системный — нет.</li>
         </ul>
-        <p>И проверьте резолвер ноды: <code class="inl">cat /etc/resolv.conf</code> должен показать <code class="inl">nameserver 127.0.0.1</code> в обычном файле, а не символьную ссылку — пока это ссылка, systemd-resolved перезапишет содержимое.</p>
+        <p>И проверьте резолвер ноды: <code class="inl">cat /etc/resolv.conf</code> должен показать адрес docker-моста (<code class="inl">nameserver 172.17.0.1</code>) в обычном файле, а не символьную ссылку — пока это ссылка, systemd-resolved перезапишет содержимое. То же самое должен показывать <code class="inl">docker exec remnanode cat /etc/resolv.conf</code>: если там публичный адрес, в контейнере осталась своя секция <code class="inl">dns</code> из override.</p>
         <div class="note warn">
           <span class="note-label">Не проверяйте личным устройством</span>
           <p>Локальный блокировщик в браузере или свой DNS дадут ложноположительный результат, и нода будет выглядеть рабочей, не будучи ею. Надёжный признак — журнал запросов в панели AGH: там должны появляться домены, которые запрашивают клиенты.</p>
@@ -901,7 +912,7 @@ systemctl daemon-reload</pre>
       <li><label><input type="checkbox" id="n1"><span>Истечение пиров в Netbird отключено — иначе флот отвалится через месяц</span></label></li>
       <li><label><input type="checkbox" id="n2"><span>Политика сужена до <code class="inl">agh-origin → agh-replica</code> tcp/3000, правила <code class="inl">All → All</code> нет</span></label></li>
       <li><label><input type="checkbox" id="n3"><span>В конфиге Xray нет секции <code class="inl">dns</code>, есть правило блокировки <code class="inl">geoip:private</code></span></label></li>
-      <li><label><input type="checkbox" id="n4"><span><code class="inl">/etc/resolv.conf</code> — обычный файл с <code class="inl">127.0.0.1</code>, не символьная ссылка</span></label></li>
+      <li><label><input type="checkbox" id="n4"><span><code class="inl">/etc/resolv.conf</code> — обычный файл с адресом docker-моста, не символьная ссылка</span></label></li>
       <li><label><input type="checkbox" id="n5"><span>В журнале запросов AGH видны клиентские домены, а не только собственные проверки</span></label></li>
       <li><label><input type="checkbox" id="n6"><span>С подключённого клиента панель недоступна по всем трём адресам</span></label></li>
       <li><label><input type="checkbox" id="n7"><span>С хоста вне оверлея <code class="inl">dig @публичный_IP</code> не отвечает</span></label></li>

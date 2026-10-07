@@ -28,7 +28,9 @@ CONF=/etc/adh-firewall.conf
 # где туннель раздаёт адреса — WireGuard, OpenVPN.
 CLIENT_NET="${CLIENT_NET:-}"
 
-# Диапазон docker-сетей. Пусто — контейнеры к AGH не достучатся.
+# Сети docker, из которых разрешён 53-й порт. Можно перечислить несколько
+# через пробел: install.sh добавляет сюда обнаруженные мосты, если docker
+# настроен на нестандартный пул адресов. Пусто — контейнеры к AGH не достучатся.
 DOCKER_NET="${DOCKER_NET:-172.16.0.0/12}"
 
 # Панель разрешаем по ИНТЕРФЕЙСУ оверлея, а не по диапазону адресов.
@@ -72,9 +74,12 @@ apply() {
   # а адрес моста пропускает. Так резолвер достаётся контейнерам сам,
   # и compose-файлы трогать не нужно — это важно, потому что override
   # у remnanode принадлежит стороннему инструменту и перезаписывается им.
-  if [[ "$ipt" == iptables && -n "$DOCKER_NET" ]]; then
-    "$ipt" -A "$CHAIN" -p udp --dport 53 -s "$DOCKER_NET" -j ACCEPT
-    "$ipt" -A "$CHAIN" -p tcp --dport 53 -s "$DOCKER_NET" -j ACCEPT
+  if [[ "$ipt" == iptables ]]; then
+    local net
+    for net in $DOCKER_NET; do
+      "$ipt" -A "$CHAIN" -p udp --dport 53 -s "$net" -j ACCEPT
+      "$ipt" -A "$CHAIN" -p tcp --dport 53 -s "$net" -j ACCEPT
+    done
   fi
 
   if [[ "$client_rules" == yes && -n "$CLIENT_NET" ]]; then
