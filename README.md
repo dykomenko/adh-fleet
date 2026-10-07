@@ -107,8 +107,12 @@ bash <(curl -fsSL https://raw.githubusercontent.com/dykomenko/adh-fleet/main/nod
 На самой ноде — работает ли AGH и приехали ли фильтры:
 
 ```bash
-dig @127.0.0.1 doubleclick.net +short
+dig @172.17.0.1 doubleclick.net +short
 ```
+
+Адрес — docker-моста, тот же, что в `resolv.conf`. **Не `127.0.0.1`:** агент
+netbird перехватывает этот адрес на себя и отвечает REFUSED, так что проверка
+через него показывает поломку на исправной ноде. Подробнее — ниже.
 
 Со стороны клиента — прошла ли фильтрация всю цепочку. Подключитесь к ноде
 и откройте <https://adblock.turtlecute.org>: страница прогоняет запросы

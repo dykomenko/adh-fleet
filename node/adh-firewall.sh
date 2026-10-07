@@ -69,6 +69,22 @@ apply() {
   "$ipt" -A "$CHAIN" -p tcp --dport 53   -s "$localhost_net" -j ACCEPT
   "$ipt" -A "$CHAIN" -p tcp --dport 3000 -s "$localhost_net" -j ACCEPT
 
+  # То же самое, но по ИНТЕРФЕЙСУ, и без этого схема ломается на части нод.
+  #
+  # Запрос с самой ноды на адрес docker-моста уходит через lo, но адрес
+  # источника ядро выбирает по маршруту. Если к мосту не подключён ни один
+  # контейнер — а так и будет там, где всё поднято с network_mode: host, —
+  # docker0 остаётся в состоянии NO-CARRIER, и источником становится
+  # ПУБЛИЧНЫЙ адрес ноды. Правило по 127.0.0.0/8 такой пакет не ловит,
+  # пакет доходит до DROP, и нода тихо резолвит через запасной сервер:
+  # фильтрации нет, а выглядит всё исправным.
+  #
+  # Совпадение по lo от выбора адреса не зависит вовсе. Это безопасно:
+  # извне на lo пакет не приходит, ядро отбрасывает такие как martian.
+  "$ipt" -A "$CHAIN" -p udp --dport 53   -i lo -j ACCEPT
+  "$ipt" -A "$CHAIN" -p tcp --dport 53   -i lo -j ACCEPT
+  "$ipt" -A "$CHAIN" -p tcp --dport 3000 -i lo -j ACCEPT
+
   # Docker-сети. Контейнеры обращаются к AGH по адресу моста (172.17.0.1),
   # потому что Docker выбрасывает loopback при наследовании resolv.conf хоста,
   # а адрес моста пропускает. Так резолвер достаётся контейнерам сам,
@@ -128,4 +144,4 @@ strip_netbird_dns_dnat() {
 
 strip_netbird_dns_dnat
 
-echo "firewall: 53 — с localhost, из ${DOCKER_NET}${CLIENT_NET:+ и из $CLIENT_NET}; 3000 — с интерфейса $OVERLAY_IF"
+echo "firewall: 53 — с lo, из ${DOCKER_NET}${CLIENT_NET:+ и из $CLIENT_NET}; 3000 — с lo и с интерфейса $OVERLAY_IF"

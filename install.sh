@@ -298,9 +298,25 @@ docker compose -f "$APP_DIR/docker-compose.yml" up -d
 if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
   command -v dig >/dev/null || apt-get install -y -qq dnsutils >/dev/null 2>&1 || true
 
+  # Адрес моста нужен ДО проверки готовности: проверяем именно тот адрес,
+  # на который потом будет указывать resolv.conf, а не 127.0.0.1.
+  #
+  # Проверять 127.0.0.1 нельзя. Агент netbird перехватывает этот адрес
+  # на себя (0.79 — правилом nftables, 0.80 — уже без единого правила
+  # в nftables и iptables) и отвечает REFUSED на всё чужое. dig при REFUSED
+  # возвращает код 0, так что проверка прошла бы успешно на неработающем пути.
+  DOCKER_GW="$(ip -4 addr show docker0 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' | head -1)"
+  [[ -n "$DOCKER_GW" ]] || DOCKER_GW="$(docker network inspect bridge \
+    -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null)"
+  if [[ -z "$DOCKER_GW" ]]; then
+    DOCKER_GW=127.0.0.1
+    echo "адрес docker-моста не определён — контейнеры останутся без AGH" >&2
+  fi
+
+  # Непустой ответ, а не только код возврата: REFUSED и SERVFAIL тоже дают 0.
   agh_ready=""
   for _ in $(seq 1 20); do
-    if dig +short +time=1 +tries=1 @127.0.0.1 example.com >/dev/null 2>&1; then
+    if [[ -n "$(dig +short +time=1 +tries=1 @"$DOCKER_GW" example.com 2>/dev/null)" ]]; then
       agh_ready=1; break
     fi
     sleep 1
@@ -322,16 +338,6 @@ if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
     #
     # Запасной резолвер обязателен: с единственным адресом падение AGH
     # оставляет ноду без DNS целиком.
-    DOCKER_GW="$(ip -4 addr show docker0 2>/dev/null | grep -oE 'inet [0-9.]+' | awk '{print $2}' | head -1)"
-    # docker0 может называться иначе или ещё не подняться — спросим сам docker
-    [[ -n "$DOCKER_GW" ]] || DOCKER_GW="$(docker network inspect bridge \
-      -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null)"
-    # Совсем без моста остаётся loopback: хост резолвить будет, контейнеры нет —
-    # Docker выбрасывает loopback при наследовании. Скажем об этом вслух.
-    if [[ -z "$DOCKER_GW" ]]; then
-      DOCKER_GW=127.0.0.1
-      echo "адрес docker-моста не определён — контейнеры останутся без AGH" >&2
-    fi
     {
       echo "nameserver $DOCKER_GW"
       [[ -n "${AGH_RESOLV_FALLBACK-1.1.1.1}" ]] && echo "nameserver ${AGH_RESOLV_FALLBACK-1.1.1.1}"
@@ -347,8 +353,10 @@ if [[ "${SKIP_RESOLV:-}" != "1" ]]; then
         || ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
     fi
   else
-    echo "AGH не ответил на 127.0.0.1:53 — резолвер ноды оставлен прежним." >&2
+    echo "AGH не ответил на ${DOCKER_GW}:53 — резолвер ноды оставлен прежним." >&2
     echo "Фильтрация до клиентов не дойдёт, пока это не исправлено." >&2
+    echo "Сверьте: dig @127.0.0.2 example.com — если отвечает, AGH исправен," >&2
+    echo "и дело в пути до адреса моста (firewall, состояние docker0)." >&2
   fi
 fi
 

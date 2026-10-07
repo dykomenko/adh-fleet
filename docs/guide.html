@@ -779,6 +779,7 @@ curl -m 5 -o /dev/null -w "localhost: %{http_code}\n" http://127.0.0.1:3000/</pr
 <pre>apt-get install -y tcpdump
 timeout 25 tcpdump -ni any 'port 53 or port 853' -c 40</pre>
         </div>
+        <p>И проверяйте запросом на <strong>адрес моста</strong>, а не на <code class="inl">127.0.0.1</code>: <code class="inl">dig @172.17.0.1 doubleclick.net +short</code>. Таймаут при живом AGH означает, что до моста не доходит пакет — устаревшие правила firewall либо <code class="inl">docker0</code> в состоянии NO-CARRIER, когда к мосту не подключён ни один контейнер. Лечится обновлением <code class="inl">adh-firewall.sh</code>: там есть правило по интерфейсу <code class="inl">lo</code>, не зависящее от выбора адреса источника.</p>
         <ul class="plain">
           <li>запросы на <code class="inl">172.17.0.1.53</code> — всё правильно;</li>
           <li>запросы с публичного адреса ноды на <code class="inl">8.8.8.8</code>, <code class="inl">1.1.1.1</code> или порт <code class="inl">853</code> — в конфиге Xray осталась секция <code class="inl">dns</code>. Соединения на 853-й доказывают это сами: DoT умеет только встроенный резолвер Xray, системный — нет.</li>
@@ -824,7 +825,11 @@ netbird up --management-url https://api.netbird.io:443 \
 dig @127.0.0.2 google.com +short   # отвечает</pre>
         </div>
         <p><code class="inl">--disable-dns</code> не спасает: правило ставится и при <code class="inl">DisableDNS=True</code>. В 0.78 такой цепочки не было, поэтому необновлённые ноды работают, а обновлённые нет.</p>
-        <p>Снимает юнит <code class="inl">adh-firewall</code> при каждой загрузке. Обновить на уже стоящей ноде — контейнеры не трогаются:</p>
+        <div class="note warn">
+          <span class="note-label">В 0.80 правила нет вовсе</span>
+          <p>Перехват работает без единого правила в nftables и iptables, снять его нечем. Поэтому мы с ним не боремся: на <code class="inl">127.0.0.1</code> не указывает ни <code class="inl">resolv.conf</code>, ни проверки. Все остальные адреса отвечают нормально, так что схеме это не мешает — мешает только диагностике, если по привычке проверять через <code class="inl">127.0.0.1</code>.</p>
+        </div>
+        <p>Там, где перехват сделан правилом nftables, его снимает юнит <code class="inl">adh-firewall</code> при каждой загрузке. Обновить на уже стоящей ноде — контейнеры не трогаются:</p>
         <div class="code">
           <div class="code-bar"><span>bash</span><span class="where">нода</span></div>
 <pre>RAW=https://raw.githubusercontent.com/dykomenko/adh-fleet/main
